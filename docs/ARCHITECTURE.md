@@ -48,6 +48,44 @@ The prototype uses a **tick-based polling** approach:
 - Simpler than WebSocket during development
 - No connection lifecycle to manage
 - Easy to debug (just curl the API)
+
+## Identification System
+
+All entities use **UUIDs** for proper audit trails and distributed system support:
+
+| Entity | ID Type | Example |
+|--------|---------|---------|
+| Game | UUID v4 | `5ded07ce-c459-4b5e-a622-829ebd4e3e4a` |
+| Hand | UUID v4 | `e8fc341f-68e2-4ed0-bfd7-6b28d5234840` |
+| Decision | UUID v4 | `a1b2c3d4-...` |
+| Bot Session | UUID v4 | `19b3e7cc-...` |
+
+Legacy slug IDs (`demo`, `heads-up-nemotron-local`) are retained for URL routing.
+
+## Bot Session System
+
+Each bot gets a **unique session** for conversation context isolation:
+
+```
+Bot 1 ─────> Session A (systemPrompt + message history)
+Bot 2 ─────> Session B (systemPrompt + message history)
+Bot 3 ─────> Session C (systemPrompt + message history)
+      ↓           ↓           ↓
+   Same Model (Nemotron Nano via LM Studio)
+```
+
+### Single-Model Mode
+By default, all bots use the **same loaded model** but with separate sessions:
+- Prevents LM Studio from swapping models (which causes delays)
+- Each bot maintains its own conversation history for context
+- History is trimmed to 20 messages (rolling window)
+- Session cleared on model change
+
+### Session Lifecycle
+1. **Created** when game starts (per bot)
+2. **Updated** with each decision (prompt + response)
+3. **Cleared** when game resets or model changes
+4. **Survives** HMR via `globalThis` pattern
 - HMR-friendly (survives hot reload)
 
 ### globalThis Singletons

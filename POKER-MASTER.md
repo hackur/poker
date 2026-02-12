@@ -2,7 +2,7 @@
 
 > **Project:** Texas Hold'em with AI Bot Players  
 > **Status:** Prototype — Playable (Phases 1-7 Complete)  
-> **Lines:** ~6,850 TypeScript across 45 files
+> **Lines:** ~6,630 TypeScript across 44 files
 
 ---
 

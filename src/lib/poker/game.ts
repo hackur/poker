@@ -1,5 +1,6 @@
 import { createDeck, shuffle, deal } from './deck';
 import { evaluateHand, compareHands } from './hand-eval';
+import { uuid } from '../uuid';
 import type {
   Card, Player, Pot, GameState, GamePhase, PlayerAction,
   ValidAction, PlayerGameView, PublicPlayerInfo, ActionType,
@@ -13,12 +14,21 @@ export interface GameConfig {
   id: string;
   smallBlind: number;
   bigBlind: number;
-  players: { id: string; name: string; stack: number; isBot: boolean; botModel?: string }[];
+  players: { 
+    id: string; 
+    name: string; 
+    stack: number; 
+    isBot: boolean; 
+    botModel?: string;
+    /** Bot session ID for conversation context (bots only) */
+    sessionId?: string;
+  }[];
 }
 
 export function createGame(config: GameConfig): GameState {
   return {
     id: config.id,
+    gameId: uuid(),
     players: config.players.map((p, i) => ({
       id: p.id,
       name: p.name,
@@ -31,6 +41,7 @@ export function createGame(config: GameConfig): GameState {
       allIn: false,
       isBot: p.isBot,
       botModel: p.botModel,
+      sessionId: p.sessionId,
       hasActedThisRound: false,
     })),
     communityCards: [],
@@ -41,6 +52,7 @@ export function createGame(config: GameConfig): GameState {
     activePlayerIndex: -1,
     phase: 'waiting',
     handNumber: 0,
+    handId: '', // Set when hand starts
     deck: [],
     deckIndex: 0,
     isActive: true,
@@ -55,6 +67,7 @@ export function createGame(config: GameConfig): GameState {
 
 export function startHand(state: GameState): void {
   state.handNumber++;
+  state.handId = uuid();
   state.phase = 'dealing';
   state.communityCards = [];
   state.currentBet = 0;
@@ -464,6 +477,8 @@ export function getPlayerView(state: GameState, playerId: string): PlayerGameVie
 
   return {
     id: state.id,
+    gameId: state.gameId,
+    handId: state.handId,
     phase: state.phase,
     players,
     communityCards: state.communityCards,

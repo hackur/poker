@@ -4,32 +4,39 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PlayerGameView, PlayerAction } from '@/lib/poker/types';
 import { PlayerSeat } from './player-seat';
-import { AnimatedCommunityCards } from './animated-card';
-import { AnimatedPotDisplay } from './chip-stack';
+import { CommunityCards, HoleCards } from './card';
+import { PotDisplay } from './chip-stack';
 import { ActionPanel } from './action-panel';
-import { AnimatedCard } from './animated-card';
 import { WinnerOverlay } from './winner-overlay';
 import { DebugPanel } from './debug-panel';
 
-// Seat positions around the table (6-max)
-const SEAT_POSITIONS_6: Record<number, React.CSSProperties> = {
-  0: { bottom: '4%', left: '50%', transform: 'translateX(-50%)' },
-  1: { bottom: '32%', left: '4%' },
-  2: { top: '8%', left: '14%' },
-  3: { top: '4%', left: '50%', transform: 'translateX(-50%)' },
-  4: { top: '8%', right: '14%' },
-  5: { bottom: '32%', right: '4%' },
+// ============================================================
+// Seat Layout Constants
+// ============================================================
+
+const SEAT_POSITIONS: Record<number, Record<number, React.CSSProperties>> = {
+  2: {
+    0: { bottom: '4%', left: '50%', transform: 'translateX(-50%)' },
+    1: { top: '4%', left: '50%', transform: 'translateX(-50%)' },
+  },
+  6: {
+    0: { bottom: '4%', left: '50%', transform: 'translateX(-50%)' },
+    1: { bottom: '32%', left: '4%' },
+    2: { top: '8%', left: '14%' },
+    3: { top: '4%', left: '50%', transform: 'translateX(-50%)' },
+    4: { top: '8%', right: '14%' },
+    5: { bottom: '32%', right: '4%' },
+  },
 };
 
-// Seat positions for heads-up (2 players)
-const SEAT_POSITIONS_2: Record<number, React.CSSProperties> = {
-  0: { bottom: '4%', left: '50%', transform: 'translateX(-50%)' },
-  1: { top: '4%', left: '50%', transform: 'translateX(-50%)' },
-};
-
-function getSeatPositions(playerCount: number): Record<number, React.CSSProperties> {
-  return playerCount <= 2 ? SEAT_POSITIONS_2 : SEAT_POSITIONS_6;
+function getSeatPosition(playerCount: number, seat: number): React.CSSProperties {
+  const layout = playerCount <= 2 ? SEAT_POSITIONS[2] : SEAT_POSITIONS[6];
+  return layout[seat] ?? {};
 }
+
+// ============================================================
+// PokerTable Component
+// ============================================================
 
 interface PokerTableProps {
   tableId: string;
@@ -39,105 +46,93 @@ export function PokerTable({ tableId }: PokerTableProps) {
   const [gameState, setGameState] = useState<PlayerGameView | null>(null);
   const [showWinnerOverlay, setShowWinnerOverlay] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const prevHandRef = useRef<number>(0);
+  const prevHandRef = useRef(0);
 
   // Poll for game state
   const fetchState = useCallback(async () => {
     try {
       const res = await fetch(`/api/v1/table/${tableId}`);
-      if (res.ok) {
-        const view = await res.json();
-        setGameState(view);
-      }
+      if (res.ok) setGameState(await res.json());
     } catch {
-      // Will retry on next poll
+      /* retry on next poll */
     }
   }, [tableId]);
 
   useEffect(() => {
     fetchState();
     pollingRef.current = setInterval(fetchState, 1000);
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, [fetchState]);
 
   // Show winner overlay on hand completion
   useEffect(() => {
-    if (gameState?.winners && gameState.winners.length > 0) {
-      if (gameState.handNumber !== prevHandRef.current) {
-        setShowWinnerOverlay(true);
-        prevHandRef.current = gameState.handNumber;
-        // Auto-hide after 3 seconds
-        const timer = setTimeout(() => setShowWinnerOverlay(false), 3000);
-        return () => clearTimeout(timer);
-      }
+    if (gameState?.winners?.length && gameState.handNumber !== prevHandRef.current) {
+      setShowWinnerOverlay(true);
+      prevHandRef.current = gameState.handNumber;
+      const timer = setTimeout(() => setShowWinnerOverlay(false), 3000);
+      return () => clearTimeout(timer);
     }
   }, [gameState?.winners, gameState?.handNumber]);
 
   // Submit action
-  const handleAction = useCallback(async (action: PlayerAction) => {
-    try {
-      const res = await fetch(`/api/v1/table/${tableId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) setGameState(await res.json());
-    } catch { /* noop */ }
-  }, [tableId]);
+  const handleAction = useCallback(
+    async (action: PlayerAction) => {
+      try {
+        const res = await fetch(`/api/v1/table/${tableId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+        if (res.ok) setGameState(await res.json());
+      } catch {
+        /* noop */
+      }
+    },
+    [tableId]
+  );
 
-  // Debug: update bot
-  const handleUpdateBot = useCallback(async (botId: string, field: string, value: string | number) => {
-    try {
+  // Debug handlers
+  const handleUpdateBot = useCallback(
+    async (botId: string, field: string, value: string | number) => {
       const res = await fetch(`/api/v1/table/${tableId}/debug`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: 'update_bot', botId, field, value }),
       });
       if (res.ok) setGameState(await res.json());
-    } catch { /* noop */ }
-  }, [tableId]);
+    },
+    [tableId]
+  );
 
-  // Debug: reset game
   const handleResetGame = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/v1/table/${tableId}/debug`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: 'reset' }),
-      });
-      if (res.ok) setGameState(await res.json());
-    } catch { /* noop */ }
+    const res = await fetch(`/api/v1/table/${tableId}/debug`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: 'reset' }),
+    });
+    if (res.ok) setGameState(await res.json());
   }, [tableId]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (!gameState) return;
 
-      const myPlayer = gameState?.players.find((p) => p.seat === gameState?.mySeat);
-      const isMyTurn = myPlayer?.isActive && (gameState?.validActions?.length ?? 0) > 0;
+      const myPlayer = gameState.players.find((p) => p.seat === gameState.mySeat);
+      const isMyTurn = myPlayer?.isActive && gameState.validActions.length > 0;
       if (!isMyTurn) return;
 
-      switch (e.key.toLowerCase()) {
-        case 'f':
-          handleAction({ type: 'fold' });
-          break;
-        case 'c':
-          if (gameState?.validActions.some((a) => a.type === 'check')) {
-            handleAction({ type: 'check' });
-          } else if (gameState?.validActions.some((a) => a.type === 'call')) {
-            handleAction({ type: 'call' });
-          }
-          break;
-        case 'r': {
-          const raiseAction = gameState?.validActions.find((a) => a.type === 'raise');
-          const betAction = gameState?.validActions.find((a) => a.type === 'bet');
-          const action = raiseAction ?? betAction;
-          if (action) {
-            handleAction({ type: action.type as 'raise' | 'bet', amount: action.minAmount });
-          }
-          break;
-        }
+      const key = e.key.toLowerCase();
+      if (key === 'f') handleAction({ type: 'fold' });
+      else if (key === 'c') {
+        const action = gameState.validActions.find((a) => a.type === 'check' || a.type === 'call');
+        if (action) handleAction({ type: action.type });
+      } else if (key === 'r') {
+        const action = gameState.validActions.find((a) => a.type === 'raise' || a.type === 'bet');
+        if (action) handleAction({ type: action.type, amount: action.minAmount });
       }
     };
 
@@ -145,15 +140,12 @@ export function PokerTable({ tableId }: PokerTableProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [gameState, handleAction]);
 
+  // Loading state
   if (!gameState) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-950 text-white">
-        <motion.div 
-          className="flex flex-col items-center gap-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <motion.div 
+        <motion.div className="flex flex-col items-center gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div
             className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full"
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -169,7 +161,6 @@ export function PokerTable({ tableId }: PokerTableProps) {
   const winnerSeats = new Set(gameState.winners?.map((w) => w.seat) ?? []);
   const totalPot = gameState.pots.reduce((sum, p) => sum + p.amount, 0);
 
-  // Build winner data for overlay
   const winnerData = (gameState.winners ?? []).map((w) => ({
     ...w,
     playerName: gameState.players.find((p) => p.seat === w.seat)?.name ?? 'Unknown',
@@ -177,11 +168,10 @@ export function PokerTable({ tableId }: PokerTableProps) {
 
   return (
     <div className="relative w-full h-screen bg-gray-950 overflow-hidden select-none">
-      {/* Winner overlay */}
       <WinnerOverlay winners={winnerData} show={showWinnerOverlay} />
 
       {/* Header */}
-      <motion.div 
+      <motion.div
         className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-3"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -194,10 +184,8 @@ export function PokerTable({ tableId }: PokerTableProps) {
         <div className="flex items-center gap-4 text-sm text-gray-400">
           <span>Blinds: ${gameState.smallBlind}/${gameState.bigBlind}</span>
           <span className="text-gray-600">|</span>
-          <motion.span 
-            className={`capitalize ${
-              gameState.phase === 'showdown' ? 'text-yellow-400' : 'text-emerald-400'
-            }`}
+          <motion.span
+            className={`capitalize ${gameState.phase === 'showdown' ? 'text-yellow-400' : 'text-emerald-400'}`}
             key={gameState.phase}
             initial={{ scale: 1.2 }}
             animate={{ scale: 1 }}
@@ -228,13 +216,9 @@ export function PokerTable({ tableId }: PokerTableProps) {
 
           {/* Community cards + pot */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <AnimatedCommunityCards 
-              cards={gameState.communityCards} 
-              handNumber={gameState.handNumber}
-            />
-            <AnimatedPotDisplay amount={totalPot} />
-            
-            {/* Phase message */}
+            <CommunityCards cards={gameState.communityCards} handNumber={gameState.handNumber} />
+            <PotDisplay amount={totalPot} />
+
             <AnimatePresence mode="wait">
               {gameState.phase === 'waiting' && (
                 <motion.div
@@ -252,7 +236,7 @@ export function PokerTable({ tableId }: PokerTableProps) {
 
           {/* Player seats */}
           {gameState.players.map((player) => (
-            <div key={player.seat} className="absolute" style={getSeatPositions(gameState.players.length)[player.seat]}>
+            <div key={player.seat} className="absolute" style={getSeatPosition(gameState.players.length, player.seat)}>
               <PlayerSeat
                 player={player}
                 isDealer={player.seat === gameState.dealerSeat}
@@ -269,29 +253,21 @@ export function PokerTable({ tableId }: PokerTableProps) {
       {/* Hero's enlarged cards */}
       <AnimatePresence>
         {gameState.myCards.length > 0 && (
-          <motion.div 
-            className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10 flex gap-2"
+          <motion.div
+            className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
           >
-            {gameState.myCards.map((card, i) => (
-              <AnimatedCard 
-                key={`hero-lg-${gameState.handNumber}-${i}`} 
-                card={card} 
-                size="lg" 
-                delay={i * 0.15}
-                dealFrom="deck"
-              />
-            ))}
+            <HoleCards cards={gameState.myCards} size="lg" animate handNumber={gameState.handNumber} />
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Showdown results */}
       <AnimatePresence>
-        {gameState.showdownHands && gameState.showdownHands.length > 0 && (
-          <motion.div 
+        {gameState.showdownHands?.length && (
+          <motion.div
             className="absolute bottom-28 right-4 z-10 bg-black/70 rounded-xl p-3 text-xs text-white space-y-1"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -302,16 +278,14 @@ export function PokerTable({ tableId }: PokerTableProps) {
               const p = gameState.players.find((pl) => pl.seat === sh.seat);
               const isWinner = winnerSeats.has(sh.seat);
               return (
-                <motion.div 
-                  key={sh.seat} 
+                <motion.div
+                  key={sh.seat}
                   className="flex items-center gap-2"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <span className={`font-medium ${isWinner ? 'text-yellow-300' : 'text-gray-300'}`}>
-                    {p?.name}:
-                  </span>
+                  <span className={`font-medium ${isWinner ? 'text-yellow-300' : 'text-gray-300'}`}>{p?.name}:</span>
                   <span className="text-emerald-300">{sh.handName}</span>
                   {isWinner && <span className="text-yellow-400">🏆</span>}
                 </motion.div>
@@ -325,12 +299,7 @@ export function PokerTable({ tableId }: PokerTableProps) {
       <div className="absolute bottom-0 left-0 right-0 z-20 flex justify-center pb-4 px-4">
         <AnimatePresence mode="wait">
           {isMyTurn ? (
-            <motion.div
-              key="action"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-            >
+            <motion.div key="action" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
               <ActionPanel
                 validActions={gameState.validActions}
                 onAction={handleAction}
@@ -340,25 +309,14 @@ export function PokerTable({ tableId }: PokerTableProps) {
               />
             </motion.div>
           ) : (
-            <motion.div 
-              key="waiting"
-              className="text-gray-600 text-sm py-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <motion.div key="waiting" className="text-gray-600 text-sm py-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {gameState.phase === 'showdown' ? '' : 'Waiting for other players...'}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Debug panel */}
-      <DebugPanel
-        gameState={gameState}
-        onUpdateBot={handleUpdateBot}
-        onResetGame={handleResetGame}
-      />
+      <DebugPanel gameState={gameState} onUpdateBot={handleUpdateBot} onResetGame={handleResetGame} />
     </div>
   );
 }

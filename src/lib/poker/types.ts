@@ -57,6 +57,8 @@ export interface Player {
   allIn: boolean;
   isBot: boolean;
   botModel?: string;
+  /** Bot session ID for conversation context (bots only) */
+  sessionId?: string;
   hasActedThisRound: boolean;
 }
 
@@ -76,6 +78,8 @@ export type GamePhase =
 
 export interface GameState {
   id: string;
+  /** UUID for this game instance */
+  gameId: string;
   players: Player[];
   communityCards: Card[];
   pots: Pot[];
@@ -85,6 +89,8 @@ export interface GameState {
   activePlayerIndex: number;
   phase: GamePhase;
   handNumber: number;
+  /** UUID for the current hand */
+  handId: string;
   deck: Card[];
   deckIndex: number;
   isActive: boolean;
@@ -97,6 +103,10 @@ export interface GameState {
 /** What a specific player is allowed to see */
 export interface PlayerGameView {
   id: string;
+  /** UUID for this game instance */
+  gameId: string;
+  /** UUID for the current hand */
+  handId: string;
   phase: GamePhase;
   players: PublicPlayerInfo[];
   communityCards: Card[];

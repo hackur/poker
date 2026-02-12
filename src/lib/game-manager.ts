@@ -8,6 +8,8 @@ import { DEFAULT_DRIVERS, checkProviderHealth, type BotDriver } from './poker/bo
 import { getDrivers } from './driver-store';
 import { addHandRecord, type HandRecord, type HandAction } from './hand-history';
 import { getSettings } from './game-config';
+import { initModelSession, startKeepalive, getActiveModelId } from './model-session';
+import { createBotSession, deleteBotSessions } from './bot-session';
 
 // ============================================================
 // Game Manager — Tick-based with async AI driver support
@@ -35,6 +37,14 @@ class GameManager {
     if (existing) return existing;
 
     const drivers = getDrivers();
+    const settings = getSettings();
+    
+    // Use single model mode: all bots share the same model (different sessions)
+    const activeModel = getActiveModelId();
+    const primaryDriver = drivers.find((d) => d.enabled && d.status === 'connected')
+      ?? drivers.find((d) => d.enabled && d.provider === 'lmstudio')
+      ?? drivers[0];
+    
     const players: GameConfig['players'] = [
       { id: humanPlayerId, name: 'You', stack: 1000, isBot: false },
     ];
@@ -42,21 +52,31 @@ class GameManager {
     for (let i = 0; i < 5; i++) {
       const defaultProfile = BOT_PROFILES[i];
       const botId = `bot-${i}`;
+      
+      // All bots use the same driver but with different personalities/sessions
+      const driver = primaryDriver;
 
-      // Try to match a driver to this bot
-      const driver = drivers[i] ?? undefined;
+      // Create a unique session for this bot
+      const session = createBotSession({
+        botId,
+        modelId: activeModel ?? driver?.modelId ?? 'rule-based',
+        displayName: `Bot ${i + 1}`,
+        systemPrompt: driver?.personality.systemPrompt ?? defaultProfile.name,
+      });
 
       const profile: BotProfile = {
         ...defaultProfile,
+        name: `Bot ${i + 1}`, // Numbered names for clarity
         driver: driver?.enabled ? driver : undefined,
       };
 
       players.push({
         id: botId,
-        name: driver?.displayName ?? defaultProfile.name,
+        name: `Bot ${i + 1}`,
         stack: 1000,
         isBot: true,
-        botModel: driver?.displayName ?? defaultProfile.model,
+        botModel: activeModel ?? driver?.displayName ?? defaultProfile.model,
+        sessionId: session.sessionId,
       });
 
       this.botProfiles.set(botId, profile);
@@ -81,14 +101,24 @@ class GameManager {
     if (existing) return existing;
 
     const drivers = getDrivers();
+    const activeModel = getActiveModelId();
     const driver = driverId
       ? drivers.find((d) => d.id === driverId)
       : drivers.find((d) => d.enabled && d.provider === 'lmstudio') ?? drivers[0];
 
     const botId = 'bot-hu';
+    
+    // Create a session for this bot
+    const session = createBotSession({
+      botId,
+      modelId: activeModel ?? driver?.modelId ?? 'rule-based',
+      displayName: driver?.displayName ?? 'Bot',
+      systemPrompt: driver?.personality.systemPrompt ?? 'You are a poker player.',
+    });
+    
     const profile: BotProfile = {
       name: driver?.displayName ?? 'Bot',
-      model: driver?.modelId ?? 'rule-based',
+      model: activeModel ?? driver?.modelId ?? 'rule-based',
       aggression: driver?.personality.aggression ?? 0.6,
       tightness: driver?.personality.tightness ?? 0.6,
       bluffFreq: driver?.personality.bluffFreq ?? 0.15,
@@ -98,7 +128,14 @@ class GameManager {
 
     const players: GameConfig['players'] = [
       { id: humanPlayerId, name: 'You', stack: 1000, isBot: false },
-      { id: botId, name: driver?.displayName ?? 'Bot', stack: 1000, isBot: true, botModel: driver?.displayName ?? 'Rule-based' },
+      { 
+        id: botId, 
+        name: driver?.displayName ?? 'Bot', 
+        stack: 1000, 
+        isBot: true, 
+        botModel: activeModel ?? driver?.displayName ?? 'Rule-based',
+        sessionId: session.sessionId,
+      },
     ];
 
     const state = createGame({ id: gameId, smallBlind: 5, bigBlind: 10, players });
@@ -161,6 +198,8 @@ class GameManager {
 
     const record: HandRecord = {
       gameId,
+      gameUuid: state.gameId,
+      handUuid: state.handId,
       handNumber: state.handNumber,
       timestamp: Date.now(),
       blinds: { small: state.smallBlind, big: state.bigBlind },
@@ -189,6 +228,17 @@ class GameManager {
   /** Reset the game */
   resetGame(gameId: string, humanPlayerId: string): void {
     const isHeadsUp = gameId.startsWith('heads-up-');
+    const existingGame = this.games.get(gameId);
+    
+    // Clean up bot sessions for this game
+    if (existingGame) {
+      for (const player of existingGame.players) {
+        if (player.isBot) {
+          deleteBotSessions(player.id);
+        }
+      }
+    }
+    
     this.games.delete(gameId);
     this.lastTickTime.delete(gameId);
     this.showdownUntil.delete(gameId);
@@ -364,6 +414,13 @@ class GameManager {
   // ============================================================
 
   private async checkAllDriverHealth(): Promise<void> {
+    // Initialize model session — detects loaded model and starts keepalive
+    const activeModel = await initModelSession();
+    if (activeModel) {
+      console.log(`[GameManager] Using active model: ${activeModel}`);
+      startKeepalive();
+    }
+
     const drivers = getDrivers();
     for (const driver of drivers) {
       if (driver.enabled) {

@@ -2,7 +2,7 @@
 
 ## Overview
 Full-stack Texas Hold'em poker platform with AI bot players powered by local and cloud LLMs.
-~6,850 lines of TypeScript across 45 files.
+~6,630 lines of TypeScript across 44 files.
 
 ## Documentation
 See `/docs/` for detailed documentation:

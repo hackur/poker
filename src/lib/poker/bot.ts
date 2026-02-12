@@ -3,6 +3,15 @@ import { evaluateHand } from './hand-eval';
 import { HandRank } from './types';
 import type { BotDriver, BotDecision, GameContext } from './bot-drivers';
 import { callModel, buildGamePrompt } from './bot-drivers';
+import { uuid } from '../uuid';
+import { 
+  deliberate, 
+  shouldUseQuickMode, 
+  QUICK_DELIBERATION, 
+  DEFAULT_DELIBERATION,
+  type DeliberationResult,
+} from './deliberation';
+import { getSettings } from '../game-config';
 
 // ============================================================
 // Bot Engine — Hybrid rule-based + AI model integration
@@ -57,7 +66,7 @@ function logDecision(decision: BotDecision): void {
 // Main Entry Point
 // ============================================================
 
-/** Compute a bot's action — tries AI model first, falls back to rule-based */
+/** Compute a bot's action — uses multi-turn deliberation if enabled */
 export async function computeBotActionAsync(
   state: GameState,
   playerId: string,
@@ -71,17 +80,69 @@ export async function computeBotActionAsync(
   if (profile.driver && profile.driver.enabled && profile.driver.status === 'connected') {
     try {
       const gameCtx = buildGameContext(state, playerId, validActions);
-      const prompt = buildGamePrompt(gameCtx);
-      const result = await callModel({ driver: profile.driver, gamePrompt: prompt });
+      const settings = getSettings();
+      
+      // Use deliberation if enabled
+      if (settings.deliberationEnabled) {
+        const config = shouldUseQuickMode(gameCtx) ? QUICK_DELIBERATION : DEFAULT_DELIBERATION;
+        const result = await deliberate(
+          profile.driver,
+          player.sessionId,
+          gameCtx,
+          config,
+        );
+        
+        // Validate the action is legal
+        const action = validateAction(result.finalAction, validActions);
+        
+        // Build reasoning from deliberation steps
+        const deliberationSummary = result.steps
+          .map(s => `[${s.question}] ${s.response.slice(0, 150)}...`)
+          .join('\n\n');
 
-      // Validate the action is legal
+        logDecision({
+          decisionId: uuid(),
+          botId: playerId,
+          botName: profile.name,
+          modelId: profile.driver.modelId,
+          provider: profile.driver.provider,
+          sessionId: player.sessionId,
+          prompt: `[Deliberation: ${result.steps.length} steps]`,
+          rawResponse: result.rawFinalResponse,
+          action,
+          reasoning: deliberationSummary,
+          handAssessment: `Confidence: ${result.confidence}/10`,
+          inferenceTimeMs: result.totalDurationMs,
+          isFallback: false,
+          timestamp: Date.now(),
+          handNumber: state.handNumber,
+          gameId: state.id,
+          gameUuid: state.gameId,
+          handUuid: state.handId,
+          street: state.phase,
+          deliberation: result, // Include full deliberation for debug panel
+        });
+
+        return action;
+      }
+      
+      // Single-shot mode (deliberation disabled)
+      const prompt = buildGamePrompt(gameCtx);
+      const result = await callModel({ 
+        driver: profile.driver, 
+        gamePrompt: prompt,
+        sessionId: player.sessionId,
+      });
+
       const action = validateAction(result.action, validActions);
 
       logDecision({
+        decisionId: uuid(),
         botId: playerId,
         botName: profile.name,
         modelId: profile.driver.modelId,
         provider: profile.driver.provider,
+        sessionId: player.sessionId,
         prompt,
         rawResponse: result.rawResponse,
         action,
@@ -93,6 +154,8 @@ export async function computeBotActionAsync(
         timestamp: Date.now(),
         handNumber: state.handNumber,
         gameId: state.id,
+        gameUuid: state.gameId,
+        handUuid: state.handId,
         street: state.phase,
       });
 
@@ -106,10 +169,12 @@ export async function computeBotActionAsync(
   const action = computeBotActionSync(state, playerId, profile, validActions);
 
   logDecision({
+    decisionId: uuid(),
     botId: playerId,
     botName: profile.name,
     modelId: profile.model,
     provider: profile.driver?.provider ?? 'lmstudio',
+    sessionId: player.sessionId,
     prompt: '(rule-based — no model call)',
     rawResponse: '',
     action,
@@ -120,6 +185,8 @@ export async function computeBotActionAsync(
     timestamp: Date.now(),
     handNumber: state.handNumber,
     gameId: state.id,
+    gameUuid: state.gameId,
+    handUuid: state.handId,
     street: state.phase,
   });
 
@@ -138,10 +205,12 @@ export function computeBotAction(
 
   if (player) {
     logDecision({
+      decisionId: uuid(),
       botId: playerId,
       botName: profile.name,
       modelId: profile.model,
       provider: profile.driver?.provider ?? 'lmstudio',
+      sessionId: player.sessionId,
       prompt: '(rule-based — no model call)',
       rawResponse: '',
       action,
@@ -152,6 +221,8 @@ export function computeBotAction(
       timestamp: Date.now(),
       handNumber: state.handNumber,
       gameId: state.id,
+      gameUuid: state.gameId,
+      handUuid: state.handId,
       street: state.phase,
     });
   }

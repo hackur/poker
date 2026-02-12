@@ -18,6 +18,12 @@ export interface GameSettings {
   smallBlind: number;
   /** Blinds: big blind */
   bigBlind: number;
+  /** Enable multi-turn deliberation for bot decisions */
+  deliberationEnabled: boolean;
+  /** Max deliberation steps (questions to self) before final decision */
+  deliberationMaxSteps: number;
+  /** Timeout per deliberation step in ms */
+  deliberationStepTimeoutMs: number;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -28,6 +34,9 @@ export const DEFAULT_SETTINGS: GameSettings = {
   rebuyStack: 1000,
   smallBlind: 5,
   bigBlind: 10,
+  deliberationEnabled: true,
+  deliberationMaxSteps: 3,
+  deliberationStepTimeoutMs: 5000,
 };
 
 const KEY = '__pokerGameSettings__';

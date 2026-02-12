@@ -4,7 +4,12 @@
 // ============================================================
 
 export interface HandRecord {
+  /** Game slug ID */
   gameId: string;
+  /** Game UUID */
+  gameUuid: string;
+  /** Hand UUID */
+  handUuid: string;
   handNumber: number;
   timestamp: number;
   blinds: { small: number; big: number };

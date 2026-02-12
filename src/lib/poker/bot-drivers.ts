@@ -68,12 +68,33 @@ export type PlayStyle =
   | 'balanced'           // GTO-approximating
   | 'exploitative';      // Adjusts to opponents
 
+/** Deliberation step record */
+export interface DeliberationStepRecord {
+  question: string;
+  prompt: string;
+  response: string;
+  durationMs: number;
+}
+
+/** Full deliberation result */
+export interface DeliberationRecord {
+  steps: DeliberationStepRecord[];
+  totalDurationMs: number;
+  finalAction: { type: string; amount?: number };
+  confidence: number;
+  rawFinalResponse: string;
+}
+
 /** Decision record — full transparency of bot reasoning */
 export interface BotDecision {
+  /** Unique decision ID (UUID) */
+  decisionId: string;
   botId: string;
   botName: string;
   modelId: string;
   provider: ProviderType;
+  /** Bot session ID for context tracking */
+  sessionId?: string;
   /** The prompt sent to the model */
   prompt: string;
   /** Raw model response */
@@ -94,10 +115,16 @@ export interface BotDecision {
   timestamp: number;
   /** Hand number when this decision was made */
   handNumber?: number;
-  /** Game ID */
+  /** Game ID (slug) */
   gameId?: string;
+  /** Game UUID */
+  gameUuid?: string;
+  /** Hand UUID */
+  handUuid?: string;
   /** Street/phase when decision was made */
   street?: string;
+  /** Full deliberation data (if multi-turn was used) */
+  deliberation?: DeliberationRecord;
 }
 
 // ============================================================
@@ -634,6 +661,8 @@ export async function keepaliveModel(driver: BotDriver): Promise<boolean> {
 export interface InferenceRequest {
   driver: BotDriver;
   gamePrompt: string;
+  /** Session ID for conversation context */
+  sessionId?: string;
 }
 
 export interface InferenceResponse {
@@ -646,10 +675,18 @@ export interface InferenceResponse {
 }
 
 import { getSettings } from '../game-config';
+import { getActiveModelId, recordActivity } from '../model-session';
+import { 
+  getOrCreateBotSession, 
+  getMessagesForCall, 
+  recordDecision,
+  type BotSession,
+} from '../bot-session';
+import { uuid } from '../uuid';
 
 /** Call an OpenAI-compatible API to get a poker decision */
 export async function callModel(req: InferenceRequest): Promise<InferenceResponse> {
-  const { driver, gamePrompt } = req;
+  const { driver, gamePrompt, sessionId } = req;
   const startTime = Date.now();
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -658,12 +695,29 @@ export async function callModel(req: InferenceRequest): Promise<InferenceRespons
   // Ollama and LM Studio both support /v1/chat/completions
   const url = `${driver.baseUrl}/chat/completions`;
 
-  const body: Record<string, unknown> = {
-    model: driver.modelId,
-    messages: [
+  // For LM Studio: use the currently loaded model to avoid model swapping
+  let modelId = driver.modelId;
+  if (driver.provider === 'lmstudio') {
+    const activeModel = getActiveModelId();
+    if (activeModel) {
+      modelId = activeModel;
+    }
+  }
+
+  // Build messages: use session history if available, otherwise fresh context
+  let messages: { role: string; content: string }[];
+  if (sessionId) {
+    messages = getMessagesForCall(sessionId, gamePrompt);
+  } else {
+    messages = [
       { role: 'system', content: driver.personality.systemPrompt },
       { role: 'user', content: gamePrompt },
-    ],
+    ];
+  }
+
+  const body: Record<string, unknown> = {
+    model: modelId,
+    messages,
     temperature: 0.7,
     max_tokens: 1024,
   };
@@ -691,6 +745,14 @@ export async function callModel(req: InferenceRequest): Promise<InferenceRespons
     // Some models (e.g. Nemotron) put output in reasoning_content instead of content
     const content = message?.content || message?.reasoning_content || '';
     const usage = data.usage;
+
+    // Record activity to prevent model unload
+    recordActivity();
+
+    // Record decision in session history for context continuity
+    if (sessionId) {
+      recordDecision(sessionId, gamePrompt, content);
+    }
 
     // Parse the JSON response
     const parsed = parseModelResponse(content);
