@@ -102,6 +102,9 @@ export function useGameWebSocket(opts: UseGameWebSocketOptions): UseGameWebSocke
     if (wsRef.current?.readyState === WebSocket.CONNECTING) return;
 
     setConnectionState('connecting');
+    
+    // Immediately do one poll so the UI renders fast while WS connects
+    fallbackPoll();
 
     try {
       const url = getWebSocketUrl();

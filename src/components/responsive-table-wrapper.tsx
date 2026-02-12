@@ -16,7 +16,7 @@ interface ResponsiveTableWrapperProps {
 export function ResponsiveTableWrapper({ 
   tableId, 
   playerId = 'human-1',
-  useWebSocket = true,
+  useWebSocket = true, // WebSocket with polling fallback (Phase 14B)
 }: ResponsiveTableWrapperProps) {
   const { isDesktop } = useResponsive();
 

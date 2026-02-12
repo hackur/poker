@@ -10,6 +10,8 @@ const PUBLIC_API_ROUTES = [
   '/api/v1/tables',
   '/api/v1/table',       // Demo table access (remove for production)
   '/api/v1/games',       // WebSocket endpoint
+  '/table/demo',         // Demo table page (guest access)
+  '/table/heads-up-',    // Heads-up tables (guest access)
 ];
 
 // Routes that require authentication
