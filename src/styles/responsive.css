@@ -1,0 +1,244 @@
+/* ============================================================
+   Phase 13: Mobile-First Responsive Design
+   ============================================================ */
+
+/* Touch optimization */
+@media (pointer: coarse) {
+  button, a, input[type="range"], select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  input[type="range"] {
+    height: 44px;
+  }
+
+  /* Disable hover effects on touch */
+  button:hover {
+    filter: none !important;
+  }
+}
+
+/* Prevent horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================================
+   Mobile (<640px)
+   ============================================================ */
+@media (max-width: 639px) {
+  /* Table container */
+  .poker-table-container {
+    width: 100% !important;
+    height: 100dvh !important;
+    padding: 0;
+  }
+
+  /* Table felt: smaller oval */
+  .poker-felt {
+    width: 95% !important;
+    max-width: none !important;
+    aspect-ratio: 4/3 !important;
+  }
+
+  /* Compact header */
+  .poker-header {
+    padding: 8px 12px !important;
+    font-size: 12px;
+  }
+
+  .poker-header h1 {
+    font-size: 14px !important;
+  }
+
+  /* Cards: smaller on mobile */
+  .card-sm {
+    width: 32px !important;
+    height: 44px !important;
+  }
+  .card-md {
+    width: 40px !important;
+    height: 56px !important;
+  }
+  .card-lg {
+    width: 52px !important;
+    height: 72px !important;
+  }
+
+  /* Community cards gap */
+  .community-cards {
+    gap: 4px !important;
+  }
+
+  /* Player seats: condensed */
+  .player-seat {
+    min-width: 80px !important;
+  }
+  .player-seat .player-name {
+    max-width: 70px !important;
+    font-size: 11px !important;
+  }
+  .player-seat .player-stack {
+    font-size: 10px !important;
+  }
+
+  /* Pot display */
+  .pot-display {
+    font-size: 12px !important;
+  }
+
+  /* Hero cards positioned closer */
+  .hero-cards {
+    bottom: 100px !important;
+  }
+
+  /* Action panel full-width */
+  .action-panel {
+    width: 100% !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 8px !important;
+  }
+
+  /* Hide debug panel on mobile */
+  .debug-panel {
+    display: none !important;
+  }
+
+  /* Showdown results: overlay bottom */
+  .showdown-results {
+    right: auto !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    bottom: 110px !important;
+    max-width: 90% !important;
+  }
+
+  /* Safe area padding for notched phones */
+  .poker-table-container {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* ============================================================
+   Mobile Landscape
+   ============================================================ */
+@media (max-width: 639px) and (orientation: landscape) {
+  .poker-felt {
+    aspect-ratio: 16/9 !important;
+    width: 90% !important;
+  }
+
+  .poker-header {
+    padding: 4px 12px !important;
+  }
+
+  .hero-cards {
+    bottom: 60px !important;
+  }
+
+  .action-panel {
+    padding: 4px 8px !important;
+  }
+}
+
+/* ============================================================
+   Tablet (640px - 1023px)
+   ============================================================ */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .poker-felt {
+    width: 90% !important;
+    max-width: 700px !important;
+  }
+
+  .card-md {
+    width: 48px !important;
+    height: 68px !important;
+  }
+
+  .player-seat {
+    min-width: 100px !important;
+  }
+}
+
+/* ============================================================
+   Chat Panel Mobile
+   ============================================================ */
+@media (max-width: 639px) {
+  .chat-panel {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50dvh;
+    z-index: 50;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .chat-panel.chat-open {
+    transform: translateY(0);
+  }
+
+  .chat-toggle {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .chat-toggle {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   Hamburger Menu
+   ============================================================ */
+@media (max-width: 639px) {
+  .desktop-nav {
+    display: none !important;
+  }
+  .mobile-nav {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .mobile-nav {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   Utilities
+   ============================================================ */
+.touch-none {
+  touch-action: none;
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Prevent text selection on game elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Smooth scroll for mobile */
+.scroll-smooth {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Full viewport height accounting for mobile browser chrome */
+.h-dvh {
+  height: 100dvh;
+}
