@@ -11,6 +11,7 @@ import { WinnerOverlay } from './winner-overlay';
 import { DebugPanel } from './debug-panel';
 import { SoundToggle } from './sound-toggle';
 import { useGameSounds, playActionSound } from '@/lib/audio/use-game-sounds';
+import { ChatPanel } from './chat-panel';
 
 // ============================================================
 // Seat Layout Constants
@@ -47,6 +48,7 @@ interface PokerTableProps {
 export function PokerTable({ tableId }: PokerTableProps) {
   const [gameState, setGameState] = useState<PlayerGameView | null>(null);
   const [showWinnerOverlay, setShowWinnerOverlay] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevHandRef = useRef(0);
 
@@ -325,6 +327,14 @@ export function PokerTable({ tableId }: PokerTableProps) {
       </div>
 
       <DebugPanel gameState={gameState} onUpdateBot={handleUpdateBot} onResetGame={handleResetGame} />
+
+      <ChatPanel
+        tableId={tableId}
+        playerId={gameState?.players?.[0]?.id ?? 'player-0'}
+        playerName={gameState?.players?.[0]?.name ?? 'Player'}
+        isOpen={chatOpen}
+        onToggle={() => setChatOpen(o => !o)}
+      />
     </div>
   );
 }
