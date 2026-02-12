@@ -114,7 +114,7 @@ export const DEFAULT_DRIVERS: BotDriver[] = [
     id: 'nemotron-local',
     displayName: 'Nemotron Nano',
     provider: 'lmstudio',
-    modelId: 'nemotron-3-nano',
+    modelId: 'nvidia/nemotron-3-nano',
     baseUrl: 'http://localhost:1234/v1',
     apiKey: '',
     enabled: true,
@@ -144,7 +144,7 @@ You think in terms of: hand strength, position, pot odds, stack-to-pot ratio, an
     id: 'nemotron-reasoning',
     displayName: 'Nemotron Deep',
     provider: 'lmstudio',
-    modelId: 'nemotron-3-nano',
+    modelId: 'nvidia/nemotron-3-nano',
     baseUrl: 'http://localhost:1234/v1',
     apiKey: '',
     enabled: true,
@@ -335,7 +335,7 @@ export async function callModel(req: InferenceRequest): Promise<InferenceRespons
   // Ollama and LM Studio both support /v1/chat/completions
   const url = `${driver.baseUrl}/chat/completions`;
 
-  const body = {
+  const body: Record<string, unknown> = {
     model: driver.modelId,
     messages: [
       { role: 'system', content: driver.personality.systemPrompt },
@@ -343,8 +343,12 @@ export async function callModel(req: InferenceRequest): Promise<InferenceRespons
     ],
     temperature: 0.7,
     max_tokens: 500,
-    response_format: { type: 'json_object' },
   };
+
+  // Only add response_format for providers known to support it
+  if (driver.provider === 'openai' || driver.provider === 'openrouter') {
+    body.response_format = { type: 'json_object' };
+  }
 
   try {
     const res = await fetch(url, {

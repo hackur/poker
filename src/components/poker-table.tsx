@@ -10,7 +10,7 @@ import { PlayingCard } from './playing-card';
 import { DebugPanel } from './debug-panel';
 
 // Seat positions around the table (6-max)
-const SEAT_POSITIONS: Record<number, React.CSSProperties> = {
+const SEAT_POSITIONS_6: Record<number, React.CSSProperties> = {
   0: { bottom: '4%', left: '50%', transform: 'translateX(-50%)' },
   1: { bottom: '32%', left: '4%' },
   2: { top: '8%', left: '14%' },
@@ -18,6 +18,16 @@ const SEAT_POSITIONS: Record<number, React.CSSProperties> = {
   4: { top: '8%', right: '14%' },
   5: { bottom: '32%', right: '4%' },
 };
+
+// Seat positions for heads-up (2 players)
+const SEAT_POSITIONS_2: Record<number, React.CSSProperties> = {
+  0: { bottom: '4%', left: '50%', transform: 'translateX(-50%)' },
+  1: { top: '4%', left: '50%', transform: 'translateX(-50%)' },
+};
+
+function getSeatPositions(playerCount: number): Record<number, React.CSSProperties> {
+  return playerCount <= 2 ? SEAT_POSITIONS_2 : SEAT_POSITIONS_6;
+}
 
 interface PokerTableProps {
   tableId: string;
@@ -196,7 +206,7 @@ export function PokerTable({ tableId }: PokerTableProps) {
 
           {/* Player seats */}
           {gameState.players.map((player) => (
-            <div key={player.seat} className="absolute" style={SEAT_POSITIONS[player.seat]}>
+            <div key={player.seat} className="absolute" style={getSeatPositions(gameState.players.length)[player.seat]}>
               <PlayerSeat
                 player={player}
                 isDealer={player.seat === gameState.dealerSeat}

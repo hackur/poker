@@ -3,15 +3,20 @@ import { gameManager } from '@/lib/game-manager';
 
 const HUMAN_PLAYER_ID = 'human-1';
 
-/** GET /api/table/[id] — Get game state for the player */
+/** GET /api/v1/table/[id] — Get game state for the player */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
 
-  // Create or get the game
-  gameManager.getOrCreateDemo(HUMAN_PLAYER_ID);
+  // Route to appropriate game creator based on table ID
+  if (id.startsWith('heads-up-')) {
+    const driverId = id.replace('heads-up-', '');
+    gameManager.getOrCreateHeadsUp(HUMAN_PLAYER_ID, driverId);
+  } else {
+    gameManager.getOrCreateDemo(HUMAN_PLAYER_ID);
+  }
 
   const view = gameManager.getView(id, HUMAN_PLAYER_ID);
   if (!view) {
@@ -21,7 +26,7 @@ export async function GET(
   return NextResponse.json(view);
 }
 
-/** POST /api/table/[id] — Submit a player action */
+/** POST /api/v1/table/[id] — Submit a player action */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },

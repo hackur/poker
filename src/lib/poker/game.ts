@@ -452,11 +452,14 @@ export function getPlayerView(state: GameState, playerId: string): PlayerGameVie
   const showdownHands = isShowdown
     ? state.players
         .filter((p) => !p.folded && p.holeCards.length > 0)
-        .map((p) => ({
-          seat: p.seat,
-          cards: p.holeCards,
-          handName: evaluateHand([...p.holeCards, ...state.communityCards]).name,
-        }))
+        .map((p) => {
+          const allCards = [...p.holeCards, ...state.communityCards];
+          return {
+            seat: p.seat,
+            cards: p.holeCards,
+            handName: allCards.length >= 5 ? evaluateHand(allCards).name : 'Winner (opponent folded)',
+          };
+        })
     : undefined;
 
   return {
