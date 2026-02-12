@@ -6,6 +6,8 @@ import {
 import { computeBotAction, computeBotActionAsync, BOT_PROFILES, type BotProfile } from './poker/bot';
 import { DEFAULT_DRIVERS, checkProviderHealth, type BotDriver } from './poker/bot-drivers';
 import { getDrivers } from './driver-store';
+import { addHandRecord, type HandRecord, type HandAction } from './hand-history';
+import { getSettings } from './game-config';
 
 // ============================================================
 // Game Manager — Tick-based with async AI driver support
@@ -19,6 +21,13 @@ class GameManager {
   private lastTickTime = new Map<string, number>();
   private showdownUntil = new Map<string, number>();
   private healthChecked = false;
+  /** Track starting stacks for hand history */
+  private handStartStacks = new Map<string, Map<string, number>>(); // gameId → playerId → stack
+  /** Track actions for hand history */
+  private handActions = new Map<string, HandAction[]>(); // gameId → actions
+  /** Track which hand number was last recorded */
+  private lastRecordedHand = new Map<string, number>();
+  // Hand history stored via globalThis in hand-history.ts
 
   /** Create or get a demo game */
   getOrCreateDemo(humanPlayerId: string): GameState {
@@ -127,9 +136,54 @@ class GameManager {
     if (!state) return false;
     const activeId = getActivePlayerId(state);
     if (activeId !== playerId) return false;
+    const player = state.players.find((p) => p.id === playerId);
+    const street = state.phase;
     const success = executeAction(state, playerId, action);
-    if (success) this.lastTickTime.set(gameId, Date.now());
+    if (success) {
+      this.lastTickTime.set(gameId, Date.now());
+      this.trackAction(gameId, player?.seat ?? -1, player?.name ?? playerId, street, action);
+    }
     return success;
+  }
+
+  /** Track an action for hand history */
+  private trackAction(gameId: string, seat: number, name: string, street: string, action: PlayerAction): void {
+    const actions = this.handActions.get(gameId);
+    if (actions) {
+      actions.push({ seat, name, street, action: action.type, amount: action.amount, timestamp: Date.now() });
+    }
+  }
+
+  /** Record a completed hand to history */
+  private recordCompletedHand(gameId: string, state: GameState): void {
+    const startStacks = this.handStartStacks.get(gameId);
+    const actions = this.handActions.get(gameId) ?? [];
+
+    const record: HandRecord = {
+      gameId,
+      handNumber: state.handNumber,
+      timestamp: Date.now(),
+      blinds: { small: state.smallBlind, big: state.bigBlind },
+      players: state.players.map((p) => ({
+        seat: p.seat,
+        name: p.name,
+        isBot: p.isBot,
+        botModel: p.botModel,
+        startStack: startStacks?.get(p.id) ?? p.stack,
+        endStack: p.stack,
+        holeCards: p.holeCards.length > 0 ? p.holeCards : undefined,
+        isDealer: p.seat === state.dealerSeat,
+      })),
+      actions,
+      communityCards: state.communityCards,
+      winners: (state.winners ?? []).map((w) => {
+        const p = state.players.find((pl) => pl.seat === w.seat);
+        return { seat: w.seat, name: p?.name ?? '?', amount: w.amount, handName: w.handName };
+      }),
+      pot: state.pots.reduce((s, p) => s + p.amount, 0) || (state.winners ?? []).reduce((s, w) => s + w.amount, 0),
+    };
+
+    addHandRecord(record);
   }
 
   /** Reset the game */
@@ -138,6 +192,9 @@ class GameManager {
     this.games.delete(gameId);
     this.lastTickTime.delete(gameId);
     this.showdownUntil.delete(gameId);
+    this.handStartStacks.delete(gameId);
+    this.handActions.delete(gameId);
+    this.lastRecordedHand.delete(gameId);
     // Clear pending actions for this game only
     for (const key of this.pendingBotAction.keys()) {
       if (key.startsWith(`${gameId}:`)) this.pendingBotAction.delete(key);
@@ -206,15 +263,27 @@ class GameManager {
 
     // Start new hand if needed
     if (state.phase === 'showdown' || state.phase === 'waiting') {
+      // Record completed hand
+      if (state.phase === 'showdown' && (this.lastRecordedHand.get(gameId) ?? 0) < state.handNumber) {
+        console.log(`[HandHistory] Recording hand #${state.handNumber} for ${gameId}, stacks=${this.handStartStacks.has(gameId)}, actions=${this.handActions.get(gameId)?.length ?? 0}`);
+        this.recordCompletedHand(gameId, state);
+        this.lastRecordedHand.set(gameId, state.handNumber);
+      }
       if (state.phase === 'showdown' && showdownEnd === 0) {
-        this.showdownUntil.set(gameId, now + 3000);
+        this.showdownUntil.set(gameId, now + getSettings().showdownHoldMs);
         this.lastTickTime.set(gameId, now);
         return;
       }
       for (const p of state.players) {
-        if (p.stack <= 0) p.stack = 1000;
+        if (p.stack <= 0) p.stack = getSettings().rebuyStack;
       }
       if (canStartHand(state)) {
+        // Capture starting stacks before the hand
+        const stacks = new Map<string, number>();
+        for (const p of state.players) stacks.set(p.id, p.stack);
+        this.handStartStacks.set(gameId, stacks);
+        this.handActions.set(gameId, []);
+
         startHand(state);
         this.lastTickTime.set(gameId, now);
         this.showdownUntil.set(gameId, 0);
@@ -234,8 +303,14 @@ class GameManager {
     const resolved = this.resolvedBotActions.get(key);
     if (resolved) {
       this.resolvedBotActions.delete(key);
+      const street = state.phase;
       const success = executeAction(state, activeId, resolved);
-      if (!success) executeAction(state, activeId, { type: 'fold' });
+      if (success) {
+        this.trackAction(gameId, player.seat, player.name, street, resolved);
+      } else {
+        executeAction(state, activeId, { type: 'fold' });
+        this.trackAction(gameId, player.seat, player.name, street, { type: 'fold' });
+      }
       this.lastTickTime.set(gameId, now);
       return;
     }
@@ -245,9 +320,8 @@ class GameManager {
 
     // Minimum think time before acting
     const profile = this.botProfiles.get(activeId);
-    const thinkTime = profile?.driver
-      ? (profile.driver.personality.thinkTimeMs[0] ?? 1000)
-      : 1000 + Math.random() * 1500;
+    const cfg = getSettings();
+    const thinkTime = cfg.botThinkMinMs + Math.random() * (cfg.botThinkMaxMs - cfg.botThinkMinMs);
 
     if (elapsed < thinkTime) return;
 
@@ -274,8 +348,14 @@ class GameManager {
     // Rule-based (sync) — use immediately after think time
     const valid = getValidActions(state, activeId);
     const action = computeBotAction(state, activeId, profile ?? BOT_PROFILES[0], valid);
+    const street = state.phase;
     const success = executeAction(state, activeId, action);
-    if (!success) executeAction(state, activeId, { type: 'fold' });
+    if (success) {
+      this.trackAction(gameId, player.seat, player.name, street, action);
+    } else {
+      executeAction(state, activeId, { type: 'fold' });
+      this.trackAction(gameId, player.seat, player.name, street, { type: 'fold' });
+    }
     this.lastTickTime.set(gameId, now);
   }
 

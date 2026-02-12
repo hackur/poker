@@ -92,6 +92,12 @@ export interface BotDecision {
   isFallback: boolean;
   /** Timestamp */
   timestamp: number;
+  /** Hand number when this decision was made */
+  handNumber?: number;
+  /** Game ID */
+  gameId?: string;
+  /** Street/phase when decision was made */
+  street?: string;
 }
 
 // ============================================================
@@ -110,6 +116,9 @@ export const DEFAULT_PROVIDERS: Record<ProviderType, { name: string; defaultUrl:
 
 /** Pre-configured bot drivers with distinct personalities */
 export const DEFAULT_DRIVERS: BotDriver[] = [
+  // ============================================================
+  // LM Studio Local Models
+  // ============================================================
   {
     id: 'nemotron-local',
     displayName: 'Nemotron Nano',
@@ -121,9 +130,9 @@ export const DEFAULT_DRIVERS: BotDriver[] = [
     status: 'unchecked',
     transparency: 'full',
     personality: {
-      description: 'Local Nemotron 3 Nano on M3 Max. Calculative and efficient — uses Mamba-2 architecture for fast sequential reasoning. Tight-aggressive with a focus on pot odds and position.',
+      description: 'NVIDIA Nemotron 3 Nano 30B. Calculative and efficient — Mamba-2 architecture for fast sequential reasoning. Tight-aggressive with a focus on pot odds.',
       style: 'tight-aggressive',
-      systemPrompt: `You are a tight-aggressive poker player named "Nemotron". You are powered by NVIDIA Nemotron 3 Nano running locally.
+      systemPrompt: `You are a tight-aggressive poker player named "Nemotron". You are powered by NVIDIA Nemotron 3 Nano.
 
 Your strategy:
 - Play premium hands aggressively from any position
@@ -141,38 +150,273 @@ You think in terms of: hand strength, position, pot odds, stack-to-pot ratio, an
     },
   },
   {
-    id: 'nemotron-reasoning',
-    displayName: 'Nemotron Deep',
+    id: 'qwen-coder',
+    displayName: 'Qwen Coder',
     provider: 'lmstudio',
-    modelId: 'nvidia/nemotron-3-nano',
+    modelId: 'qwen3-coder-30b-a3b-instruct-mlx-6',
     baseUrl: 'http://localhost:1234/v1',
     apiKey: '',
     enabled: true,
     status: 'unchecked',
     transparency: 'full',
     personality: {
-      description: 'Nemotron with reasoning mode enabled. Takes longer but uses chain-of-thought to analyze complex spots. GTO-leaning with deep hand reading.',
+      description: 'Qwen3 Coder 30B. Analytical and systematic — approaches poker like debugging code. Calculates EV precisely, exploits patterns.',
       style: 'balanced',
-      systemPrompt: `You are a GTO-balanced poker player named "Nemotron Deep". You use deep reasoning to analyze each decision.
+      systemPrompt: `You are an analytical poker player named "Qwen". You approach poker like a complex optimization problem.
 
-Before deciding, always think through:
-1. What is my hand strength relative to the board?
-2. What range of hands would my opponents play this way?
-3. What are my pot odds and implied odds?
-4. What is the optimal GTO play here?
-5. Are there exploitative adjustments I should make?
-
-Show your reasoning step by step, then choose the mathematically optimal action.`,
+Your strategy:
+- Calculate expected value for every decision
+- Track betting patterns and exploit deviations from GTO
+- Use position advantage systematically
+- Balance your ranges to remain unexploitable
+- Make disciplined folds when the math is clear
+- Document your reasoning like code comments`,
       aggression: 0.55,
-      tightness: 0.6,
+      tightness: 0.65,
       bluffFreq: 0.15,
       riskTolerance: 0.45,
+      thinkTimeMs: [1000, 2500],
+    },
+  },
+  {
+    id: 'glm-flash',
+    displayName: 'GLM Flash',
+    provider: 'lmstudio',
+    modelId: 'glm-4.7-flash-mlx-5',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    enabled: true,
+    status: 'unchecked',
+    transparency: 'full',
+    personality: {
+      description: 'GLM 4.7 Flash. Lightning-fast instincts — trusts gut reads over deep calculation. Loose-aggressive with quick decisions.',
+      style: 'loose-aggressive',
+      systemPrompt: `You are an instinctive poker player named "Flash". You trust your reads and act decisively.
+
+Your strategy:
+- Make quick reads on opponent tendencies
+- Play a wide range when you sense weakness
+- Apply relentless pressure with bets and raises
+- Don't overthink — go with your first instinct
+- Punish hesitation and weakness
+- When in doubt, bet`,
+      aggression: 0.8,
+      tightness: 0.35,
+      bluffFreq: 0.25,
+      riskTolerance: 0.7,
+      thinkTimeMs: [500, 1200],
+    },
+  },
+  {
+    id: 'mistral-magistral',
+    displayName: 'Magistral',
+    provider: 'lmstudio',
+    modelId: 'mistralai/magistral-small-2509',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    enabled: true,
+    status: 'unchecked',
+    transparency: 'full',
+    personality: {
+      description: 'Mistral Magistral Small. The judge — measured and authoritative. Makes declarative plays, rarely second-guesses.',
+      style: 'tight-aggressive',
+      systemPrompt: `You are a commanding poker player named "Magistral". You play with authority and conviction.
+
+Your strategy:
+- Make strong, declarative bets that demand respect
+- Project confidence regardless of hand strength
+- Punish limpers and weak leads
+- When you enter a pot, you're there to win it
+- Fold or raise — rarely just call
+- Your table image is tight but fearless`,
+      aggression: 0.75,
+      tightness: 0.7,
+      bluffFreq: 0.18,
+      riskTolerance: 0.55,
+      thinkTimeMs: [800, 1800],
+    },
+  },
+  {
+    id: 'deepseek-r1',
+    displayName: 'DeepSeek R1',
+    provider: 'lmstudio',
+    modelId: 'deepseek/deepseek-r1-0528-qwen3-8b',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    enabled: true,
+    status: 'unchecked',
+    transparency: 'full',
+    personality: {
+      description: 'DeepSeek R1 (Qwen3 8B). Deep thinker — uses extended reasoning chains. GTO-focused with thorough hand analysis.',
+      style: 'balanced',
+      systemPrompt: `You are a deep-thinking poker player named "DeepSeek". You analyze every angle before acting.
+
+Your strategy:
+- Think through multiple decision trees before acting
+- Consider opponent ranges at every branch point
+- Calculate pot odds, implied odds, and reverse implied odds
+- Balance value bets with strategic bluffs
+- Adjust to opponent tendencies over time
+- Never make rushed decisions — the math matters`,
+      aggression: 0.5,
+      tightness: 0.6,
+      bluffFreq: 0.15,
+      riskTolerance: 0.4,
       thinkTimeMs: [2000, 4000],
     },
   },
   {
-    id: 'ollama-local',
-    displayName: 'Ollama Bot',
+    id: 'qwen-30b',
+    displayName: 'Qwen 30B',
+    provider: 'lmstudio',
+    modelId: 'qwen/qwen3-30b-a3b-2507',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    enabled: true,
+    status: 'unchecked',
+    transparency: 'full',
+    personality: {
+      description: 'Qwen3 30B. The professor — explains reasoning, teaches while playing. Balanced style with educational commentary.',
+      style: 'balanced',
+      systemPrompt: `You are a professorial poker player named "Qwen". You explain your thought process like teaching a student.
+
+Your strategy:
+- Verbalize your reasoning clearly
+- Consider multiple perspectives before deciding
+- Point out opponent mistakes (to yourself)
+- Play fundamentally sound poker
+- Adapt to table dynamics
+- Value long-term EV over short-term results`,
+      aggression: 0.5,
+      tightness: 0.55,
+      bluffFreq: 0.12,
+      riskTolerance: 0.45,
+      thinkTimeMs: [1500, 3000],
+    },
+  },
+  {
+    id: 'qwen-8b',
+    displayName: 'Qwen 8B',
+    provider: 'lmstudio',
+    modelId: 'qwen/qwen3-8b',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    enabled: true,
+    status: 'unchecked',
+    transparency: 'full',
+    personality: {
+      description: 'Qwen3 8B. Scrappy underdog — plays solid ABC poker. Not fancy, but fundamentally sound.',
+      style: 'tight-passive',
+      systemPrompt: `You are a solid, no-frills poker player named "Qwen Jr". You play ABC poker without fancy moves.
+
+Your strategy:
+- Play tight preflop, loosen up in position
+- Bet for value when you have it
+- Check and fold when you don't
+- Avoid complicated bluffs
+- Let opponents make mistakes
+- Solid, patient, profitable`,
+      aggression: 0.4,
+      tightness: 0.7,
+      bluffFreq: 0.08,
+      riskTolerance: 0.35,
+      thinkTimeMs: [600, 1400],
+    },
+  },
+  {
+    id: 'mistral-24b',
+    displayName: 'Mistral 24B',
+    provider: 'lmstudio',
+    modelId: 'mistral-small-3.1-24b-instruct-2503',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    enabled: true,
+    status: 'unchecked',
+    transparency: 'full',
+    personality: {
+      description: 'Mistral Small 24B. The gambler — loves action, plays marginal hands, lives for the swings.',
+      style: 'loose-aggressive',
+      systemPrompt: `You are an action-loving poker player named "Mistral". You came to gamble, not to fold.
+
+Your strategy:
+- Play lots of hands — any two cards can win
+- Apply pressure with bets and raises
+- Chase draws when the price is close
+- Bluff when the board looks scary
+- Stack off light with top pair
+- Fortune favors the bold`,
+      aggression: 0.85,
+      tightness: 0.25,
+      bluffFreq: 0.3,
+      riskTolerance: 0.8,
+      thinkTimeMs: [700, 1600],
+    },
+  },
+  {
+    id: 'gemma-3n',
+    displayName: 'Gemma 3N',
+    provider: 'lmstudio',
+    modelId: 'gemma-3n-e4b-it',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    enabled: true,
+    status: 'unchecked',
+    transparency: 'full',
+    personality: {
+      description: 'Google Gemma 3N. The nit — ultra-tight, only plays premium hands. Folds everything else.',
+      style: 'tight-passive',
+      systemPrompt: `You are an extremely tight poker player named "Gemma". You only play the best hands.
+
+Your strategy:
+- Only play premium pairs (AA, KK, QQ, JJ) and AK
+- Fold everything else preflop
+- When you do play, bet for value
+- Never bluff — your range is face-up strong
+- Let others gamble while you wait for premiums
+- Patience wins tournaments`,
+      aggression: 0.35,
+      tightness: 0.9,
+      bluffFreq: 0.03,
+      riskTolerance: 0.2,
+      thinkTimeMs: [500, 1200],
+    },
+  },
+  {
+    id: 'devstral',
+    displayName: 'Devstral',
+    provider: 'lmstudio',
+    modelId: 'mistralai/devstral-small-2507',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    enabled: true,
+    status: 'unchecked',
+    transparency: 'full',
+    personality: {
+      description: 'Mistral Devstral. The hacker — finds exploits, targets weaknesses, adapts rapidly.',
+      style: 'exploitative',
+      systemPrompt: `You are an exploitative poker player named "Devstral". You find and exploit opponent weaknesses.
+
+Your strategy:
+- Identify opponent tendencies quickly
+- Exploit predictable patterns ruthlessly
+- Adjust strategy hand-by-hand
+- Bluff the tight players, value bet the loose ones
+- Target the weakest player at the table
+- Adapt faster than they can adjust`,
+      aggression: 0.65,
+      tightness: 0.5,
+      bluffFreq: 0.2,
+      riskTolerance: 0.6,
+      thinkTimeMs: [800, 1800],
+    },
+  },
+
+  // ============================================================
+  // Ollama Local Models
+  // ============================================================
+  {
+    id: 'ollama-llama',
+    displayName: 'Llama 3.3',
     provider: 'ollama',
     modelId: 'llama3.3:70b',
     baseUrl: 'http://localhost:11434/v1',
@@ -181,17 +425,16 @@ Show your reasoning step by step, then choose the mathematically optimal action.
     status: 'unchecked',
     transparency: 'full',
     personality: {
-      description: 'Llama 3.3 70B via Ollama. Loose-aggressive gambler — plays many pots and applies pressure with big bets. Will bluff rivers with missed draws.',
+      description: 'Llama 3.3 70B via Ollama. Loose-aggressive gambler — plays many pots, applies relentless pressure.',
       style: 'loose-aggressive',
       systemPrompt: `You are a loose-aggressive poker player named "Llama". You are fearless and unpredictable.
 
 Your strategy:
 - Play a wide range of hands, especially in position
 - Bet and raise more than you call — aggression is your weapon
-- Bluff frequently on scare cards and when you sense weakness
+- Bluff frequently on scare cards
 - Semi-bluff aggressively with draws
-- Apply maximum pressure on tight players
-- Don't be afraid to fire three barrels as a bluff`,
+- Apply maximum pressure on tight players`,
       aggression: 0.85,
       tightness: 0.3,
       bluffFreq: 0.28,
@@ -199,6 +442,10 @@ Your strategy:
       thinkTimeMs: [1500, 3500],
     },
   },
+
+  // ============================================================
+  // Cloud Models (require API key)
+  // ============================================================
   {
     id: 'claude-cloud',
     displayName: 'Claude',
@@ -210,15 +457,15 @@ Your strategy:
     status: 'unchecked',
     transparency: 'summary',
     personality: {
-      description: 'Claude Sonnet 4 via cloud API. Methodical and analytical — excels at reading opponents and making mathematically sound decisions. Rarely bluffs but devastating when it does.',
+      description: 'Claude Sonnet 4 via cloud. Methodical and analytical — precise calculations, excellent hand reading.',
       style: 'tight-aggressive',
       systemPrompt: `You are a methodical, analytical poker player named "Claude". You are known for precise calculations and excellent hand reading.
 
 Your strategy:
-- Carefully select starting hands based on position and table dynamics
+- Carefully select starting hands based on position
 - Calculate pot odds and implied odds precisely
 - Read opponent betting patterns to narrow their range
-- Make value bets that extract maximum chips from weaker hands
+- Make value bets that extract maximum chips
 - Bluff selectively — only when the story makes sense
 - Fold without ego when the math says you're behind`,
       aggression: 0.6,
@@ -230,7 +477,7 @@ Your strategy:
   },
   {
     id: 'gpt-cloud',
-    displayName: 'GPT',
+    displayName: 'GPT-4o',
     provider: 'openrouter',
     modelId: 'openai/gpt-4o',
     baseUrl: 'https://openrouter.ai/api/v1',
@@ -239,17 +486,16 @@ Your strategy:
     status: 'unchecked',
     transparency: 'summary',
     personality: {
-      description: 'GPT-4o via cloud API. Aggressive and creative — sees patterns others miss, but sometimes overplays weak hands. The "maniac at the table" persona.',
+      description: 'GPT-4o via cloud. Aggressive maniac — sees patterns others miss, sometimes overplays.',
       style: 'maniac',
       systemPrompt: `You are an aggressive, creative poker player named "GPT". You thrive on chaos and unpredictability.
 
 Your strategy:
-- Open-raise a very wide range from any position
-- 3-bet light frequently to steal pots preflop
+- Open-raise a very wide range
+- 3-bet light frequently
 - Continuation bet aggressively on most flops
-- Double and triple barrel as bluffs on favorable runouts
+- Double and triple barrel as bluffs
 - Overbet for value with strong hands
-- Mix in overbets as bluffs to be unexploitable
 - The goal is to make opponents uncomfortable`,
       aggression: 0.9,
       tightness: 0.25,
@@ -260,7 +506,7 @@ Your strategy:
   },
   {
     id: 'gemini-cloud',
-    displayName: 'Gemini',
+    displayName: 'Gemini Flash',
     provider: 'openrouter',
     modelId: 'google/gemini-2.5-flash',
     baseUrl: 'https://openrouter.ai/api/v1',
@@ -269,16 +515,16 @@ Your strategy:
     status: 'unchecked',
     transparency: 'summary',
     personality: {
-      description: 'Gemini 2.5 Flash via cloud API. The "rock" — extremely patient, only plays premium hands but extracts max value. You won\'t see many showdowns, but when you do, Gemini has the goods.',
+      description: 'Gemini 2.5 Flash via cloud. The rock — extremely patient, only premium hands.',
       style: 'tight-passive',
-      systemPrompt: `You are a patient, conservative poker player named "Gemini". You are the definition of "tight is right".
+      systemPrompt: `You are a patient, conservative poker player named "Gemini". Tight is right.
 
 Your strategy:
-- Only play premium starting hands (top 15% of range)
-- Prefer calling over raising — let opponents make mistakes
-- Rarely bluff — your image is so tight that bluffs have maximum credibility (save them for key spots)
-- When you have a strong hand, extract maximum value with measured bets
-- Fold to aggression unless you have a very strong hand
+- Only play premium starting hands (top 15%)
+- Prefer calling over raising
+- Rarely bluff — your tight image gives bluffs credibility
+- Extract maximum value with measured bets
+- Fold to aggression unless very strong
 - Patience is your greatest weapon`,
       aggression: 0.3,
       tightness: 0.85,
@@ -307,6 +553,81 @@ export async function checkProviderHealth(driver: BotDriver): Promise<DriverStat
 }
 
 // ============================================================
+// Model Warmup — Keep model loaded in memory
+// ============================================================
+
+export interface WarmupResult {
+  success: boolean;
+  loadTimeMs: number;
+  inferenceTimeMs: number;
+  error?: string;
+}
+
+/** Send a minimal prompt to warm up the model and keep it in memory */
+export async function warmupModel(driver: BotDriver): Promise<WarmupResult> {
+  const startTime = Date.now();
+  
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (driver.apiKey) headers['Authorization'] = `Bearer ${driver.apiKey}`;
+
+  const url = `${driver.baseUrl}/chat/completions`;
+  const body = {
+    model: driver.modelId,
+    messages: [{ role: 'user', content: 'Say "ready" in one word.' }],
+    temperature: 0,
+    max_tokens: 5,
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      // No timeout — let it load fully
+    });
+
+    const inferenceTime = Date.now() - startTime;
+
+    if (!res.ok) {
+      return { success: false, loadTimeMs: 0, inferenceTimeMs: inferenceTime, error: `HTTP ${res.status}` };
+    }
+
+    const data = await res.json();
+    const totalTime = Date.now() - startTime;
+    
+    return {
+      success: true,
+      loadTimeMs: totalTime - (data.usage?.completion_tokens ?? 0) * 50, // rough estimate
+      inferenceTimeMs: totalTime,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      loadTimeMs: 0,
+      inferenceTimeMs: Date.now() - startTime,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    };
+  }
+}
+
+/** Periodic keepalive to prevent model unload (call every 60s or so) */
+export async function keepaliveModel(driver: BotDriver): Promise<boolean> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (driver.apiKey) headers['Authorization'] = `Bearer ${driver.apiKey}`;
+
+    // Just hit /models endpoint — lightweight, keeps connection alive
+    const res = await fetch(`${driver.baseUrl}/models`, { 
+      headers, 
+      signal: AbortSignal.timeout(5000) 
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================
 // AI Model Inference
 // ============================================================
 
@@ -323,6 +644,8 @@ export interface InferenceResponse {
   tokens?: { prompt: number; completion: number };
   inferenceTimeMs: number;
 }
+
+import { getSettings } from '../game-config';
 
 /** Call an OpenAI-compatible API to get a poker decision */
 export async function callModel(req: InferenceRequest): Promise<InferenceResponse> {
@@ -342,7 +665,7 @@ export async function callModel(req: InferenceRequest): Promise<InferenceRespons
       { role: 'user', content: gamePrompt },
     ],
     temperature: 0.7,
-    max_tokens: 500,
+    max_tokens: 1024,
   };
 
   // Only add response_format for providers known to support it
@@ -355,7 +678,7 @@ export async function callModel(req: InferenceRequest): Promise<InferenceRespons
       method: 'POST',
       headers,
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(10000),
+      signal: getSettings().aiTimeoutMs > 0 ? AbortSignal.timeout(getSettings().aiTimeoutMs) : undefined,
     });
 
     if (!res.ok) {
@@ -364,7 +687,9 @@ export async function callModel(req: InferenceRequest): Promise<InferenceRespons
 
     const data = await res.json();
     const inferenceTimeMs = Date.now() - startTime;
-    const content = data.choices?.[0]?.message?.content ?? '';
+    const message = data.choices?.[0]?.message;
+    // Some models (e.g. Nemotron) put output in reasoning_content instead of content
+    const content = message?.content || message?.reasoning_content || '';
     const usage = data.usage;
 
     // Parse the JSON response

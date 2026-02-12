@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkProviderHealth } from '@/lib/poker/bot-drivers';
+import { checkProviderHealth, warmupModel } from '@/lib/poker/bot-drivers';
 import { getDrivers } from '@/lib/driver-store';
 
 /** GET /api/v1/drivers — List all configured drivers */
@@ -30,6 +30,16 @@ export async function POST(request: NextRequest) {
         results[driver.id] = driver.status;
       }
       return NextResponse.json({ results });
+    }
+
+    case 'warmup': {
+      const { driverId } = body;
+      const driver = getDrivers().find((d) => d.id === driverId);
+      if (!driver) return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
+
+      const result = await warmupModel(driver);
+      if (result.success) driver.status = 'connected';
+      return NextResponse.json({ driverId, ...result });
     }
 
     case 'update': {

@@ -31,21 +31,26 @@ export const BOT_PROFILES: BotProfile[] = [
   { name: 'Haiku', model: 'Claude Haiku', aggression: 0.5, tightness: 0.5, bluffFreq: 0.1 },
 ];
 
-/** Decision log — stores last N decisions for the debug panel */
-const MAX_LOG_SIZE = 50;
-const decisionLog: BotDecision[] = [];
+/** Decision log — stored on globalThis to survive module boundaries in dev */
+const LOG_KEY = '__pokerDecisionLog__';
+function decisionStore(): BotDecision[] {
+  const g = globalThis as Record<string, unknown>;
+  if (!Array.isArray(g[LOG_KEY])) g[LOG_KEY] = [];
+  return g[LOG_KEY] as BotDecision[];
+}
 
 export function getDecisionLog(): BotDecision[] {
-  return decisionLog;
+  return decisionStore();
 }
 
 export function clearDecisionLog(): void {
-  decisionLog.length = 0;
+  decisionStore().length = 0;
 }
 
 function logDecision(decision: BotDecision): void {
-  decisionLog.unshift(decision); // Newest first
-  if (decisionLog.length > MAX_LOG_SIZE) decisionLog.pop();
+  const log = decisionStore();
+  log.unshift(decision); // Newest first
+  if (log.length > 100) log.pop();
 }
 
 // ============================================================
@@ -86,6 +91,9 @@ export async function computeBotActionAsync(
         tokens: result.tokens,
         isFallback: false,
         timestamp: Date.now(),
+        handNumber: state.handNumber,
+        gameId: state.id,
+        street: state.phase,
       });
 
       return action;
@@ -110,6 +118,9 @@ export async function computeBotActionAsync(
     inferenceTimeMs: 0,
     isFallback: true,
     timestamp: Date.now(),
+    handNumber: state.handNumber,
+    gameId: state.id,
+    street: state.phase,
   });
 
   return action;
@@ -122,7 +133,30 @@ export function computeBotAction(
   profile: BotProfile,
   validActions: ValidAction[],
 ): PlayerAction {
-  return computeBotActionSync(state, playerId, profile, validActions);
+  const player = state.players.find((p) => p.id === playerId);
+  const action = computeBotActionSync(state, playerId, profile, validActions);
+
+  if (player) {
+    logDecision({
+      botId: playerId,
+      botName: profile.name,
+      modelId: profile.model,
+      provider: profile.driver?.provider ?? 'lmstudio',
+      prompt: '(rule-based — no model call)',
+      rawResponse: '',
+      action,
+      reasoning: describeRuleBasedReasoning(state, player, profile, action),
+      handAssessment: describeHandStrength(player.holeCards, state.communityCards, state.phase),
+      inferenceTimeMs: 0,
+      isFallback: true,
+      timestamp: Date.now(),
+      handNumber: state.handNumber,
+      gameId: state.id,
+      street: state.phase,
+    });
+  }
+
+  return action;
 }
 
 // ============================================================
