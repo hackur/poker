@@ -10,10 +10,10 @@ pages_build_output_dir = ".vercel/output/static"
 [vars]
 NEXTAUTH_URL = "https://poker.jeremysarda.com"
 
-# KV namespace for sessions (optional)
-# [[kv_namespaces]]
-# binding = "SESSIONS"
-# id = "your-kv-id-here"
+# KV namespace for game state persistence (edge workers don't share memory)
+[[kv_namespaces]]
+binding = "GAME_STATE"
+id = "5abe817b20b84f4494b535df1fac7634"
 
 # D1 database (optional)
 # [[d1_databases]]
