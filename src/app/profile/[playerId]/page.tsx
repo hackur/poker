@@ -32,6 +32,30 @@ interface PlayerStats {
   lastUpdated: number;
 }
 
+import { BadgeDisplay, EloChart } from '@/components/badge-display';
+
+interface BadgeData {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlockedAt: number;
+}
+
+interface EloData {
+  rating: number;
+  history: { timestamp: number; rating: number; delta: number }[];
+  peakRating: number;
+}
+
+interface BadgeResponse {
+  playerId: string;
+  badges: BadgeData[];
+  elo: EloData | null;
+  totalWins: number;
+  totalWinnings: number;
+}
+
 // ── Sparkline component (pure SVG, no deps) ──
 function Sparkline({ data, width = 280, height = 60 }: { data: number[]; width?: number; height?: number }) {
   if (data.length < 2) return null;
@@ -78,16 +102,22 @@ export default function ProfilePage() {
   const { playerId } = useParams<{ playerId: string }>();
   const router = useRouter();
   const [stats, setStats] = useState<PlayerStats | null>(null);
+  const [badgeData, setBadgeData] = useState<BadgeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/v1/players/${encodeURIComponent(playerId)}/stats`)
-      .then(r => {
+    Promise.all([
+      fetch(`/api/v1/players/${encodeURIComponent(playerId)}/stats`).then(r => {
         if (!r.ok) throw new Error('Player not found');
         return r.json();
+      }),
+      fetch(`/api/v1/players/${encodeURIComponent(playerId)}/badges`).then(r => r.json()).catch(() => null),
+    ])
+      .then(([statsData, badges]) => {
+        setStats(statsData);
+        setBadgeData(badges);
       })
-      .then(setStats)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [playerId]);
@@ -160,6 +190,28 @@ export default function ProfilePage() {
             sub={`Won ${stats.totalChipsWon.toLocaleString()} / Lost ${stats.totalChipsLost.toLocaleString()}`}
           />
         </div>
+
+        {/* ELO Rating */}
+        {badgeData?.elo && (
+          <div className="bg-[#252525] rounded-xl p-5 border border-[#333] mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold">ELO Rating</h2>
+              <div className="flex items-center gap-4">
+                <span className="text-2xl font-bold text-[#14b8a6]">{badgeData.elo.rating}</span>
+                <span className="text-xs text-gray-500">Peak: {badgeData.elo.peakRating}</span>
+              </div>
+            </div>
+            <EloChart history={badgeData.elo.history} />
+          </div>
+        )}
+
+        {/* Achievement Badges */}
+        {badgeData && (
+          <div className="bg-[#252525] rounded-xl p-5 border border-[#333] mb-8">
+            <h2 className="text-lg font-semibold mb-4">🏅 Achievements</h2>
+            <BadgeDisplay badges={badgeData.badges} />
+          </div>
+        )}
 
         {/* P&L Chart */}
         {cumulative.length > 1 && (
