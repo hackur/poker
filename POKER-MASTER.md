@@ -1,8 +1,8 @@
 # POKER-MASTER.md — Project Index
 
 > **Project:** Texas Hold'em with AI Bot Players  
-> **Status:** Prototype — Playable (Phases 1-5 Complete)  
-> **Lines:** ~4,900 TypeScript across 37 files
+> **Status:** Prototype — Playable (Phases 1-7 Complete)  
+> **Lines:** ~6,850 TypeScript across 45 files
 
 ---
 
@@ -52,7 +52,9 @@ Press **D** to open debug panel.
 | 3. Table UI + Game Loop | ✅ Complete | ~10 |
 | 4. Debug Tooling | ✅ Complete | ~6 |
 | 5. Prototype Infrastructure | ✅ Complete | ~6 |
-| 6-16 | 🔲 Remaining | ~80-110 |
+| 6. Unit Tests | ✅ Complete | ~2 |
+| 7. Animations | ✅ Complete | ~2 |
+| 8-16 | 🔲 Remaining | ~70-100 |
 
 ---
 

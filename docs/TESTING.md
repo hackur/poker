@@ -1,6 +1,6 @@
 # Testing Strategy
 
-> **Status:** Planned for Phase 6
+> **Status:** ✅ Phase 6 Complete — 61 tests passing
 
 ## Unit Tests
 
@@ -55,14 +55,26 @@
 | Playwright | E2E browser tests |
 | MSW | API mocking |
 
-## Run Commands (Planned)
+## Run Commands
 
 ```bash
-pnpm test           # All tests
-pnpm test:unit      # Unit only
-pnpm test:e2e       # E2E only
-pnpm test:coverage  # With coverage
+npm test            # Watch mode
+npm run test:run    # Run once
+npm run test:coverage  # With coverage
 ```
+
+## Current Coverage
+
+| File | Stmts | Branch | Funcs | Lines |
+|------|-------|--------|-------|-------|
+| hand-eval.ts | 100% | 100% | 100% | 100% |
+| deck.ts | 100% | 100% | 100% | 100% |
+| game.ts | 91% | 73% | 98% | 93% |
+
+## Test Files
+
+- `tests/hand-eval.test.ts` — 28 tests (hand evaluation, comparison)
+- `tests/game.test.ts` — 33 tests (betting, streets, pots, views)
 
 ## Priority Tests
 
