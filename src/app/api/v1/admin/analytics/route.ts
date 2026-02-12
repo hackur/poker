@@ -53,5 +53,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** Export for use in layout */
-export { getConfig as getAnalyticsConfig };
+// Note: Use fetch('/api/v1/admin/analytics') to get config from client

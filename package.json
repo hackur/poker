@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev -p 3800",
     "build": "next build",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static",
+    "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-flag=nodejs_compat",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
@@ -13,6 +16,7 @@
   },
   "dependencies": {
     "@auth/core": "^0.41.0",
+    "bcrypt-edge": "^0.1.1",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.34.0",
     "next": "^15.1.0",
@@ -21,6 +25,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.0.0",
@@ -29,6 +34,8 @@
     "@vitest/coverage-v8": "^4.0.18",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
-    "vitest": "^4.0.18"
+    "vercel": "^39.0.0",
+    "vitest": "^4.0.18",
+    "wrangler": "^3.105.0"
   }
 }
