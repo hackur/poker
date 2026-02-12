@@ -5,6 +5,11 @@
 import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 
+// Routes that DON'T require auth (checked before protected)
+const PUBLIC_API_ROUTES = [
+  '/api/v1/tables',
+];
+
 // Routes that require authentication
 const PROTECTED_ROUTES = [
   '/table',
@@ -23,6 +28,10 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
   const userRole = req.auth?.user?.role;
+
+  // Skip auth for public API routes
+  const isPublicApi = PUBLIC_API_ROUTES.some(route => pathname.startsWith(route));
+  if (isPublicApi) return NextResponse.next();
 
   // Check if route requires auth
   const isProtected = PROTECTED_ROUTES.some(route => pathname.startsWith(route));

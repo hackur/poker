@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 
 // Analytics config store (globalThis for HMR)
@@ -16,11 +18,11 @@ function getConfig(): AnalyticsConfig {
   const g = globalThis as Record<string, unknown>;
   if (!g[CONFIG_KEY]) {
     g[CONFIG_KEY] = {
-      googleAnalyticsId: process.env.GOOGLE_ANALYTICS_ID ?? '',
-      googleTagManagerId: process.env.GTM_ID ?? '',
-      microsoftClarityId: process.env.CLARITY_ID ?? '',
-      facebookPixelId: '',
-      hotjarId: '',
+      googleAnalyticsId: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? process.env.GOOGLE_ANALYTICS_ID ?? '',
+      googleTagManagerId: process.env.NEXT_PUBLIC_GTM_ID ?? process.env.GTM_ID ?? '',
+      microsoftClarityId: process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID ?? process.env.CLARITY_ID ?? '',
+      facebookPixelId: process.env.NEXT_PUBLIC_FB_PIXEL_ID ?? '',
+      hotjarId: process.env.NEXT_PUBLIC_HOTJAR_ID ?? '',
       enabled: true,
     };
   }

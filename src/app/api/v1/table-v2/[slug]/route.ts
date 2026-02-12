@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { gameManagerV2 } from '@/lib/game-manager-v2';
 

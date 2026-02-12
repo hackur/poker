@@ -106,44 +106,57 @@ A production-quality Texas Hold'em No-Limit poker platform where:
 
 ---
 
-### 🔲 Phase 8: Auth + BotPlayer System (12-16 hours)
+### ✅ Phase 8: Auth + Deployment — COMPLETE (2026-02-12)
 
-**8A: Core Auth (4-5 hours)**
-- [ ] Database schema migration (users, sessions, auth_methods)
-- [ ] Password hashing with Argon2id
-- [ ] JWT token generation/validation (access + refresh)
-- [ ] Register/login/logout endpoints
-- [ ] Session middleware (protect routes)
-- [ ] Wire game state to real user IDs (remove hardcoded `human-1`)
+**8A: Auth System**
+- [x] Auth.js (NextAuth) integration
+- [x] Google + GitHub OAuth providers
+- [x] Email/password credentials provider
+- [x] Edge-compatible password hashing (Web Crypto PBKDF2)
+- [x] JWT sessions (Cloudflare Workers compatible)
+- [x] Login page with OAuth buttons + credential form
+- [x] Route protection middleware
 
-**8B: OAuth (3-4 hours)**
-- [ ] Google OAuth flow
-- [ ] GitHub OAuth flow  
-- [ ] Account linking (multiple auth methods per user)
-- [ ] OAuth callback handlers
+**8B: Cloudflare Deployment**
+- [x] Cloudflare Pages deployment via @cloudflare/next-on-pages
+- [x] Production URL: poker-70o.pages.dev
+- [x] Custom domain configured: poker.jeremysarda.com (CNAME pending)
+- [x] wrangler.toml configuration
+- [x] Edge runtime for API routes
 
-**8C: BotPlayer Entity System (3-4 hours)**
-- [ ] Database schema (bot_players table)
-- [ ] BotPlayer CRUD API (`/api/v1/admin/bots`)
-- [ ] Complete BotPlayer entity: model config + presets + personality + deliberation
-- [ ] Pre-built bot library (7 bots with distinct configurations)
-- [ ] Wire game manager to use BotPlayer entities instead of hardcoded drivers
-- [ ] Admin UI for bot management
+### ✅ Phase 9: Lobby + Table Management — COMPLETE (2026-02-12)
+- [x] Table store (`src/lib/table-store.ts`) with globalThis pattern
+- [x] API routes: GET/POST `/api/v1/tables`, join/leave endpoints
+- [x] Lobby page (`/lobby`) with real-time polling
+- [x] Create table modal (name, blinds, buy-in range, max players)
+- [x] Join table modal with buy-in slider
+- [x] Table status badges (waiting/playing/full)
+- [x] Filter tabs (All / Open Seats / Waiting)
+- [x] Spectator mode for full tables
+- [x] Auto-cleanup of empty tables
 
-**8D: Profile & Persistence (2-3 hours)**
-- [ ] User profile page
-- [ ] Preferences API
-- [ ] Balance system with double-entry ledger
-- [ ] Password change / account deletion
+### ✅ Phase 9.5: Audio + Stats + Analytics — COMPLETE (2026-02-12)
 
-### 🔲 Phase 9: Lobby + Table Management (6-8 hours)
-- [ ] Dynamic table creation (from BotPlayer library)
-- [ ] Real table listings from game manager
-- [ ] Table browser with filters (stakes, seats, type)
-- [ ] Spectator mode
-- [ ] Leave table / stand up / rebuy
-- [ ] Multi-table support
-- [ ] Private tables with invite codes
+**Audio System**
+- [x] 9 procedural sounds (Web Audio API, no external files)
+- [x] Sounds: deal, chip, check, call, raise, fold, tick, win, yourTurn, allIn
+- [x] AudioManager singleton with volume control
+- [x] Mute toggle with localStorage persistence
+- [x] `useGameSounds` hook for automatic game event sounds
+
+**Player Statistics**
+- [x] Stats store (`src/lib/player-stats.ts`) tracking all metrics
+- [x] Tracks: hands played, win rate, biggest pot, chips won/lost
+- [x] Position stats (dealer/SB/BB/UTG/MP/CO)
+- [x] Last 100 session records per player
+- [x] API: `GET /api/v1/players/[id]/stats`
+- [x] Profile page at `/profile/[playerId]` with P&L chart
+
+**Analytics**
+- [x] Analytics component with GA4, GTM, Clarity, FB Pixel, Hotjar support
+- [x] Admin config page at `/admin/analytics`
+- [x] Microsoft Clarity: vg3f6aaou9
+- [x] Google Analytics 4: G-62WRD1JVX9
 
 ### 🔲 Phase 10: Chat + Social (4-6 hours)
 - [ ] Table chat (WebSocket or polling)
@@ -206,17 +219,16 @@ A production-quality Texas Hold'em No-Limit poker platform where:
 
 | Status | Phases | Hours |
 |--------|--------|-------|
-| ✅ Complete | 1-7.5 | ~48 |
-| 🔲 Remaining | 8-16 | ~70-100 |
-| **Total** | 16 | ~120-150 |
+| ✅ Complete | 1-9.5 | ~70 |
+| 🔲 Remaining | 10-16 | ~50-70 |
+| **Total** | 16 | ~120-140 |
 
 ### Recommended Priority
-1. **Phase 8** (auth + BotPlayer) → Foundation for everything else
-2. **Phase 9** (lobby) → Real multi-table experience
-3. **Phase 14** (WebSocket) → Production-ready real-time
-4. **Phase 15** (deploy) → Ship it
-5. Phase 11 (stats) → Player retention
-6. Phase 12 (admin) → Operations
+1. **Phase 10** (chat) → Social features
+2. **Phase 14** (WebSocket) → Production-ready real-time
+3. **Phase 11** (persistent stats) → Player retention
+4. **Phase 12** (admin) → Operations
+5. **Phase 16** (tournaments) → Advanced gameplay
 
 ---
 

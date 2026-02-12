@@ -63,6 +63,18 @@ Press `D` to open the debug panel:
 | **State** | Raw game state inspector |
 | **Controls** | Runtime config sliders (AI timeout, think time, showdown hold) + game reset |
 
+## Live Demo
+
+**[poker.jeremysarda.com](https://poker.jeremysarda.com)** — Play against AI bots right now!
+
+## New Features (v0.9)
+
+- **🎰 Lobby** — Browse tables, create your own, join with custom buy-in (`/lobby`)
+- **🔊 Audio** — 9 procedural sounds (deal, chips, win) via Web Audio API
+- **📊 Player Stats** — Track your performance at `/profile/[playerId]`
+- **🔐 Auth** — Google/GitHub OAuth + email/password login
+- **📈 Analytics** — GA4 + Microsoft Clarity integration
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
@@ -72,10 +84,14 @@ Press `D` to open the debug panel:
 | POST | `/api/v1/table/:id` | Submit action `{ action: { type, amount? } }` |
 | POST | `/api/v1/table/:id/debug` | Debug commands (reset, update_bot) |
 | GET | `/api/v1/games` | List active games |
+| GET/POST | `/api/v1/tables` | List/create lobby tables |
+| POST | `/api/v1/tables/:id/join` | Join table with buy-in |
+| POST | `/api/v1/tables/:id/leave` | Leave table |
 | GET/POST | `/api/v1/drivers` | List/manage AI drivers |
 | GET | `/api/v1/decisions` | Bot decision log |
 | GET/DELETE | `/api/v1/history` | Hand history (supports `?gameId=` filter) |
 | GET/POST | `/api/v1/settings` | Runtime game configuration |
+| GET | `/api/v1/players/:id/stats` | Player statistics |
 | POST | `/api/v1/auth/login` | Login |
 | POST | `/api/v1/auth/register` | Register |
 | GET | `/api/v1/auth/session` | Current session |
@@ -94,7 +110,7 @@ Press `D` to open the debug panel:
 - **Next.js 15** (App Router) + **React 19** + **TypeScript** (strict)
 - **Tailwind CSS v4**
 - **OpenAI-compatible API** for all model providers
-- **~4,900 lines** of TypeScript
+- **~11,000 lines** of TypeScript across 70+ files
 
 ## License
 

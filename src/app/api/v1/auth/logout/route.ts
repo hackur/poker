@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextResponse } from 'next/server';
 import { deleteSession } from '@/lib/auth';
 import { cookies } from 'next/headers';

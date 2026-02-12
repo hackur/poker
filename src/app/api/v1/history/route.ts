@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getHandHistory, clearHandHistory } from '@/lib/hand-history';
 import { getDecisionLog } from '@/lib/poker/bot';

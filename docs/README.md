@@ -26,8 +26,12 @@ A production-quality Texas Hold'em No-Limit poker platform with AI bot opponents
 |-------|--------|-------------|
 | 1-7 | ✅ Complete | Foundation, bots, UI, testing, animations |
 | 7.5 | ✅ Complete | UUID IDs, bot sessions, deliberation system |
-| 8 | 🔲 Next | Auth + BotPlayer entity system |
-| 9-16 | 🔲 Planned | Lobby, chat, stats, admin, WebSocket, deploy |
+| 8 | ✅ Complete | Auth + Cloudflare deployment |
+| 9 | ✅ Complete | Lobby + table management |
+| 9.5 | ✅ Complete | Audio, player stats, analytics |
+| 10-16 | 🔲 Planned | Chat, hand history, admin, WebSocket, tournaments |
+
+**Live:** [poker.jeremysarda.com](https://poker.jeremysarda.com)
 
 ## Key Concepts
 
@@ -67,7 +71,7 @@ npx tsc --noEmit
 
 ## Line Count
 
-~7,000 lines of TypeScript across 50+ files
+~11,000 lines of TypeScript across 70+ files
 
 ## Tech Stack
 

@@ -13,6 +13,7 @@ import {
   type GameState, type PlayerGameView, type PlayerAction, type GameConfig,
 } from './poker';
 import { addHandRecord, type HandRecord, type HandAction } from './hand-history';
+import { updateStatsFromHand } from './player-stats';
 import { getSettings } from './game-config';
 import { initModelSession, startKeepalive, getActiveModelId } from './model-session';
 import { 
@@ -453,6 +454,26 @@ class GameManagerV2 {
     };
 
     addHandRecord(record);
+
+    // Update player statistics
+    updateStatsFromHand({
+      gameId: record.gameId,
+      handNumber: record.handNumber,
+      timestamp: record.timestamp,
+      pot: record.pot,
+      dealerSeat: state.dealerSeat,
+      players: state.players.map(p => ({
+        seat: p.seat,
+        name: p.name,
+        id: p.id,
+        isBot: p.isBot,
+        startStack: instance.handStartStacks.get(p.id) ?? p.stack,
+        endStack: p.stack,
+        isDealer: p.seat === state.dealerSeat,
+      })),
+      winners: record.winners,
+    });
+
     console.log(`[GameManagerV2] Recorded hand #${record.handNumber}`);
   }
 

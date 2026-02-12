@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { checkProviderHealth, warmupModel } from '@/lib/poker/bot-drivers';
 import { getDrivers } from '@/lib/driver-store';

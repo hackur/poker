@@ -2,7 +2,13 @@
 
 ## Overview
 Full-stack Texas Hold'em poker platform with AI bot players powered by local and cloud LLMs.
-~6,630 lines of TypeScript across 44 files.
+~11,000+ lines of TypeScript across 70+ files.
+
+## Current Status (2026-02-12)
+- **Phases Complete:** 1-9 + Audio + Player Profiles + Analytics
+- **Deployed:** poker-70o.pages.dev (Cloudflare Pages)
+- **Custom Domain:** poker.jeremysarda.com (CNAME pending)
+- **Analytics:** GA4 (G-62WRD1JVX9) + Clarity (vg3f6aaou9)
 
 ## Documentation
 See `/docs/` for detailed documentation:
@@ -37,16 +43,21 @@ src/
 │   ├── api/v1/                  # REST API (versioned)
 │   │   ├── table/[id]/          # Game state + actions (GET/POST)
 │   │   ├── table/[id]/debug/    # Debug commands (reset, update_bot)
+│   │   ├── tables/              # Lobby tables (list, create)
+│   │   ├── tables/[id]/join/    # Join table
+│   │   ├── tables/[id]/leave/   # Leave table
 │   │   ├── drivers/             # AI driver management (GET/POST)
 │   │   ├── decisions/           # Bot decision log (GET)
 │   │   ├── history/             # Hand history (GET/DELETE)
 │   │   ├── games/               # Active games list (GET)
 │   │   ├── settings/            # Runtime game config (GET/POST)
+│   │   ├── players/[id]/stats/  # Player statistics
 │   │   ├── auth/                # Auth (login/register/session/logout)
-│   │   └── admin/users/         # Admin user management
+│   │   └── admin/               # Admin (users, analytics)
 │   ├── (game)/lobby/            # Table lobby page
 │   ├── (auth)/login|register/   # Auth pages
 │   ├── (admin)/admin/           # Admin dashboard
+│   ├── profile/[playerId]/      # Player profile & stats
 │   └── table/[id]/              # Game table page
 ├── components/                  # React components
 │   ├── poker-table.tsx (275)    # Main table UI with polling
@@ -58,18 +69,25 @@ src/
 │   └── pot-display.tsx (30)     # Pot chip display
 └── lib/
     ├── poker/                   # Core poker engine (pure logic, no I/O)
-    │   ├── types.ts (149)       # All type definitions
-    │   ├── deck.ts (31)         # Fisher-Yates shuffle, dealing
-    │   ├── hand-eval.ts (173)   # Hand evaluation (best 5 from 7)
-    │   ├── game.ts (530)        # State machine: betting, streets, showdown, side pots
-    │   ├── bot.ts (378)         # Hybrid rule-based + AI bot engine with decision logging
-    │   ├── bot-drivers.ts (519) # AI model driver system, prompt builder, inference
-    │   └── index.ts (6)         # Re-exports
-    ├── game-manager.ts (391)    # Tick-based game manager (singleton, handles game lifecycle)
-    ├── game-config.ts (45)      # Runtime settings (globalThis store)
-    ├── hand-history.ts (58)     # Completed hand records (globalThis store)
-    ├── driver-store.ts (11)     # AI driver instances (globalThis store)
-    └── auth.ts (191)            # Session-based auth (in-memory prototype)
+    │   ├── types.ts             # All type definitions
+    │   ├── deck.ts              # Fisher-Yates shuffle, dealing
+    │   ├── hand-eval.ts         # Hand evaluation (best 5 from 7)
+    │   ├── game.ts              # State machine: betting, streets, showdown, side pots
+    │   ├── bot.ts               # Hybrid rule-based + AI bot engine with decision logging
+    │   ├── bot-drivers.ts       # AI model driver system, prompt builder, inference
+    │   └── index.ts             # Re-exports
+    ├── audio/                   # Sound system
+    │   ├── sounds.ts            # 9 procedural sounds (Web Audio API)
+    │   ├── index.ts             # AudioManager singleton
+    │   └── use-game-sounds.ts   # React hook for game sound effects
+    ├── game-manager.ts          # Tick-based game manager (singleton)
+    ├── game-manager-v2.ts       # Enhanced manager with stats integration
+    ├── game-config.ts           # Runtime settings (globalThis store)
+    ├── hand-history.ts          # Completed hand records (globalThis store)
+    ├── driver-store.ts          # AI driver instances (globalThis store)
+    ├── table-store.ts           # Lobby table management (globalThis store)
+    ├── player-stats.ts          # Player statistics tracking (globalThis store)
+    └── auth.ts                  # Auth.js integration (JWT sessions)
 ```
 
 ### Game Types

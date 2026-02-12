@@ -9,6 +9,8 @@ import { PotDisplay } from './chip-stack';
 import { ActionPanel } from './action-panel';
 import { WinnerOverlay } from './winner-overlay';
 import { DebugPanel } from './debug-panel';
+import { SoundToggle } from './sound-toggle';
+import { useGameSounds, playActionSound } from '@/lib/audio/use-game-sounds';
 
 // ============================================================
 // Seat Layout Constants
@@ -76,9 +78,13 @@ export function PokerTable({ tableId }: PokerTableProps) {
     }
   }, [gameState?.winners, gameState?.handNumber]);
 
+  // Sound effects
+  useGameSounds(gameState);
+
   // Submit action
   const handleAction = useCallback(
     async (action: PlayerAction) => {
+      playActionSound(action.type);
       try {
         const res = await fetch(`/api/v1/table/${tableId}`, {
           method: 'POST',
@@ -183,6 +189,8 @@ export function PokerTable({ tableId }: PokerTableProps) {
         </div>
         <div className="flex items-center gap-4 text-sm text-gray-400">
           <span>Blinds: ${gameState.smallBlind}/${gameState.bigBlind}</span>
+          <span className="text-gray-600">|</span>
+          <SoundToggle />
           <span className="text-gray-600">|</span>
           <motion.span
             className={`capitalize ${gameState.phase === 'showdown' ? 'text-yellow-400' : 'text-emerald-400'}`}

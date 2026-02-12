@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { PokerTable } from '@/components/poker-table';
 
 export default async function TablePage({ params }: { params: Promise<{ id: string }> }) {

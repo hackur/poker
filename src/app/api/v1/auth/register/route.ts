@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, createSession, sessionCookieOptions, publicUser, type User } from '@/lib/auth';
 import { cookies } from 'next/headers';
