@@ -200,7 +200,7 @@ export async function registerWithCredentials(
     return { success: false, error: 'Password must be at least 8 characters' };
   }
 
-  const passwordHash = await hash(password, 12);
+  const passwordHash = await hashPassword(password);
 
   const user: StoredUser = {
     id: crypto.randomUUID(),

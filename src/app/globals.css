@@ -84,7 +84,4 @@ body {
   transition-timing-function: ease-in-out;
 }
 
-/* Reset transition for animations */
-.animate-*, [class*="animate-"] {
-  transition: none;
-}
+/* Note: Animation classes are handled by Tailwind/Framer Motion */
