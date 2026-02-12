@@ -81,7 +81,9 @@ export function calculatePayouts(config: PayoutConfig): PayoutEntry[] {
     percentages = customPercentages;
   } else {
     const paidPlaces = getPaidPlaces(playerCount);
-    percentages = getPercentages(paidPlaces, structure);
+    // Filter out 'custom' since we're not using custom percentages here
+    const stdStructure = structure === 'custom' ? 'standard' : structure;
+    percentages = getPercentages(paidPlaces, stdStructure);
   }
 
   // Normalize percentages to sum to 100
