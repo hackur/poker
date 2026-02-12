@@ -1,64 +1,90 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-@theme {
-  --color-felt: #0d5c2e;
-  --color-felt-dark: #0a4423;
-  --color-felt-light: #1a6b3c;
-  --color-gold: #d4a418;
-  --color-card-back: #1e3a5f;
+/* Portfolio-matching color scheme */
+:root {
+  /* Primary accent - matches jeremysarda.com teal */
+  --color-primary: #14b8a6;
+  --color-primary-hover: #0d9488;
+  --color-primary-light: #2dd4bf;
+  
+  /* Backgrounds - dark charcoal */
+  --color-bg-dark: #1a1a1a;
+  --color-bg-card: #262626;
+  --color-bg-input: #333333;
+  
+  /* Text */
+  --color-text: #f5f5f5;
+  --color-text-muted: #a3a3a3;
+  
+  /* Poker table green (keeping for table felt) */
+  --color-felt: #0f5132;
+  --color-felt-light: #157347;
 }
 
-/* Card deal animation */
-@keyframes deal {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+/* Override default green with teal */
+.bg-green-600 {
+  background-color: var(--color-primary) !important;
+}
+.bg-green-500 {
+  background-color: var(--color-primary-light) !important;
+}
+.hover\:bg-green-500:hover {
+  background-color: var(--color-primary-hover) !important;
+}
+.text-green-400 {
+  color: var(--color-primary-light) !important;
+}
+.hover\:text-green-300:hover {
+  color: var(--color-primary) !important;
+}
+.focus\:border-green-500:focus {
+  border-color: var(--color-primary) !important;
+}
+.border-green-500 {
+  border-color: var(--color-primary) !important;
 }
 
-.animate-deal {
-  animation: deal 0.3s ease-out both;
+/* Dark background for consistency */
+body {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text);
 }
 
-/* Fade in */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Card backgrounds */
+.bg-gray-800 {
+  background-color: var(--color-bg-card) !important;
+}
+.bg-gray-700 {
+  background-color: var(--color-bg-input) !important;
+}
+.bg-gray-900, .bg-gray-950 {
+  background-color: var(--color-bg-dark) !important;
 }
 
-.animate-fade-in {
-  animation: fade-in 0.4s ease-out both;
-}
-
-/* Timer shrink bar */
-@keyframes shrink {
-  from { width: 100%; }
-  to { width: 0%; }
-}
-
-.animate-shrink {
-  animation: shrink 30s linear both;
-}
-
-/* Scrollbar styling */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--color-bg-dark);
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
+  background: var(--color-bg-input);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }
 
-/* Body defaults */
-body {
-  background-color: #030712;
-  color: #f9fafb;
-  -webkit-font-smoothing: antialiased;
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Reset transition for animations */
+.animate-*, [class*="animate-"] {
+  transition: none;
 }
