@@ -12,8 +12,85 @@ import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
-import { compare, hash } from 'bcryptjs';
 import type { NextAuthConfig } from 'next-auth';
+
+// ============================================================
+// Edge-compatible password hashing using Web Crypto API
+// ============================================================
+
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    data,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+  
+  const hash = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    key,
+    256
+  );
+  
+  const hashArray = new Uint8Array(hash);
+  const combined = new Uint8Array(salt.length + hashArray.length);
+  combined.set(salt);
+  combined.set(hashArray, salt.length);
+  
+  return btoa(String.fromCharCode(...combined));
+}
+
+async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  try {
+    const combined = Uint8Array.from(atob(storedHash), c => c.charCodeAt(0));
+    const salt = combined.slice(0, 16);
+    const storedHashArray = combined.slice(16);
+    
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    
+    const key = await crypto.subtle.importKey(
+      'raw',
+      data,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits']
+    );
+    
+    const hash = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt,
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      key,
+      256
+    );
+    
+    const hashArray = new Uint8Array(hash);
+    
+    if (hashArray.length !== storedHashArray.length) return false;
+    
+    let match = true;
+    for (let i = 0; i < hashArray.length; i++) {
+      if (hashArray[i] !== storedHashArray[i]) match = false;
+    }
+    return match;
+  } catch {
+    return false;
+  }
+}
 
 // ============================================================
 // User Store (In-memory for prototype, D1 for production)
@@ -101,7 +178,7 @@ async function verifyCredentials(
   const user = findUserByEmail(email);
   if (!user || !user.passwordHash) return null;
 
-  const valid = await compare(password, user.passwordHash);
+  const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) return null;
 
   user.lastLoginAt = Date.now();
