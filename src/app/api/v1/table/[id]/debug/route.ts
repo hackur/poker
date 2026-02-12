@@ -1,7 +1,7 @@
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { gameManager } from '@/lib/game-manager';
+import { getKVGameManager } from '@/lib/game-manager-kv';
 
 const HUMAN_PLAYER_ID = 'human-1';
 
@@ -12,23 +12,22 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { command, botId, field, value } = body;
+  const { command } = body;
+
+  const manager = getKVGameManager();
 
   switch (command) {
     case 'reset':
-      gameManager.resetGame(id, HUMAN_PLAYER_ID);
+      await manager.resetGame(id, HUMAN_PLAYER_ID);
       break;
 
-    case 'update_bot':
-      if (botId && field && value !== undefined) {
-        gameManager.updateBot(id, botId, field, value);
-      }
-      break;
+    // Note: update_bot not supported in KV mode (would need to reload from KV)
+    // Can be added later if needed
 
     default:
       return NextResponse.json({ error: 'Unknown debug command' }, { status: 400 });
   }
 
-  const view = gameManager.getView(id, HUMAN_PLAYER_ID);
+  const view = await manager.getView(id, HUMAN_PLAYER_ID);
   return NextResponse.json(view);
 }

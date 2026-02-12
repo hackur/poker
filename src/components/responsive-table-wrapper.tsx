@@ -2,16 +2,40 @@
 
 import { useResponsive } from '@/hooks/useMediaQuery';
 import { PokerTable } from './poker-table';
+import { PokerTableWS } from './poker-table-ws';
 import { MobilePokerTable } from './poker-table-mobile';
 import { ChatPanel } from './chat-panel';
 
 interface ResponsiveTableWrapperProps {
   tableId: string;
+  playerId?: string;
+  /** Use WebSocket for real-time updates (default: false for backward compatibility) */
+  useWebSocket?: boolean;
 }
 
-export function ResponsiveTableWrapper({ tableId }: ResponsiveTableWrapperProps) {
+export function ResponsiveTableWrapper({ 
+  tableId, 
+  playerId = 'human-1',
+  useWebSocket = false,
+}: ResponsiveTableWrapperProps) {
   const { isDesktop } = useResponsive();
 
+  // Use WebSocket-enabled component if flag is set
+  if (useWebSocket) {
+    return (
+      <>
+        {isDesktop ? (
+          <PokerTableWS tableId={tableId} playerId={playerId} />
+        ) : (
+          // TODO: Create MobilePokerTableWS for mobile WebSocket support
+          <MobilePokerTable tableId={tableId} />
+        )}
+        <ChatPanel tableId={tableId} />
+      </>
+    );
+  }
+
+  // Default: polling-based components
   return (
     <>
       {isDesktop ? (

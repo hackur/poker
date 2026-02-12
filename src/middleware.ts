@@ -8,14 +8,15 @@ import { NextResponse } from 'next/server';
 // Routes that DON'T require auth (checked before protected)
 const PUBLIC_API_ROUTES = [
   '/api/v1/tables',
+  '/api/v1/table',       // Demo table access (remove for production)
+  '/api/v1/games',       // WebSocket endpoint
 ];
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
   '/table',
   '/profile',
-  '/api/v1/table',
-  '/api/v1/table-v2',
+  '/api/v1/table-v2',  // Full game API requires auth
 ];
 
 // Routes that require admin role

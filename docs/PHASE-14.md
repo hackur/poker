@@ -1,213 +1,105 @@
-# Phase 14: WebSocket Real-Time Sync via Cloudflare Durable Objects
+# Phase 14: Real-Time Persistence
 
-**Objective:** Replace 1000ms polling with instant WebSocket-based game state synchronization.
+**Status:** ✅ KV persistence implemented (Phase 14A) | 🔜 WebSocket via DO (Phase 14B future)
 
-**Current State (Phase 9.5):** Polling-based (1s delay, scalable but not instant)
-**Target State (Phase 14):** Real-time event-driven via Durable Objects
+## What's Implemented
 
----
+### Phase 14A: KV Persistence (Current)
+Solves the edge runtime state isolation issue using Cloudflare KV.
 
-## Architecture Overview
-
-### Durable Objects as Game Session Holders
+**Architecture:**
 ```
 ┌─────────────────────────────────┐
 │  Client (Poker Table)           │
-│  - WebSocket → Durable Object   │
+│  - Polls /api/v1/table/[id]     │
+│  - 1000ms polling interval      │
 └────────────┬────────────────────┘
-             │ connect() | action() | subscribe()
+             │ GET/POST
              ▼
 ┌─────────────────────────────────┐
-│  Durable Object (GameSession)    │
-│  - Holds live game state         │
-│  - Broadcasts to all clients     │
-│  - Persists to D1 on hand end    │
+│  Edge Function (API Route)       │
+│  - KVGameManager                 │
+│  - Loads state from KV           │
+│  - Saves state to KV after action│
 └────────────┬────────────────────┘
-             │ store()
+             │ get/put
              ▼
 ┌─────────────────────────────────┐
-│  D1 Database (Hand History)      │
-│  - Archived after hand complete  │
+│  Cloudflare KV                   │
+│  - game:{gameId} → GameState    │
+│  - 24h TTL                       │
 └─────────────────────────────────┘
 ```
 
-### Event Flow
-1. **Player Action** (fold, check, raise, etc.) → WebSocket to Durable Object
-2. **Durable Object** processes action, updates state
-3. **Broadcast** new state to all connected players instantly
-4. **Optional Persistence** at key moments (hand start, showdown, end)
+**Key Files:**
+- `src/lib/game-manager-kv.ts` - KV-backed game manager
+- `src/lib/cf-context.ts` - Cloudflare binding helper
+- `src/app/api/v1/table/[id]/route.ts` - Updated API route
+
+**Free Tier Limits:**
+- 100,000 reads/day
+- 1,000 writes/day (each action = 1 write)
+- 1 GB storage
+
+**Status:** ✅ Complete - game state persists across edge workers
 
 ---
 
-## Key Components
+### Phase 14B: WebSocket via Durable Objects (Future)
 
-### 1. Durable Object Class: `GameSessionDO`
-```typescript
-// src/lib/durable-objects/game-session.ts
-export class GameSessionDO implements DurableObject {
-  state: GameState;
-  env: Env;
-  connections: WebSocket[] = [];
+When real-time updates become critical (< 200ms latency needed), upgrade to Durable Objects:
 
-  async fetch(req: Request): Promise<Response> {
-    const url = new URL(req.url);
-    
-    if (url.pathname === '/connect') {
-      return this.handleWebSocket(req);
-    }
-    
-    if (req.method === 'POST') {
-      const action = await req.json();
-      return this.handleAction(action);
-    }
-  }
+**Files Ready (not deployed):**
+- `worker/game-session-do.ts` - Durable Object class
+- `worker/wrangler.toml` - Worker config
+- `src/hooks/useGameWebSocket.ts` - Client WebSocket hook
+- `src/components/poker-table-ws.tsx` - WS-enabled table component
 
-  handleWebSocket(req: Request): Response {
-    // Upgrade to WebSocket, add to connections
-    // Send current game state
-    // Listen for messages
-  }
+**To Deploy DO (when needed):**
+```bash
+# 1. Deploy DO worker
+cd worker
+wrangler deploy
 
-  async handleAction(action: PlayerAction): Promise<Response> {
-    // Process action against game state
-    // Validate (server authoritative!)
-    // Update state
-    // Broadcast to all connections
-    // Return confirmation
-  }
-
-  broadcast(message: GameUpdate): void {
-    // Send to all connected players
-    this.connections.forEach(ws => ws.send(JSON.stringify(message)));
-  }
-}
+# 2. Update main wrangler.toml service binding
+# 3. Enable WebSocket in ResponsiveTableWrapper
 ```
 
-### 2. Client Hook: `useGameWebSocket`
-```typescript
-// src/hooks/useGameWebSocket.ts
-export function useGameWebSocket(gameId: string) {
-  const [state, setState] = useState<GameState | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+**DO Free Tier:**
+- 100,000 requests/day
+- 1 GB-second duration/day
 
-  useEffect(() => {
-    const doId = new URL(
-      `/api/v1/durable-objects/game/${gameId}`,
-      window.location.href
-    );
-    
-    wsRef.current = new WebSocket(doId);
-    
-    wsRef.current.onmessage = (e) => {
-      const update = JSON.parse(e.data);
-      setState(update);
-    };
-    
-    return () => wsRef.current?.close();
-  }, [gameId]);
+---
 
-  const sendAction = (action: PlayerAction) => {
-    wsRef.current?.send(JSON.stringify(action));
-  };
+## Current Behavior
 
-  return { state, sendAction };
-}
-```
+1. **New Game:** First request creates game, saves to KV
+2. **Polling:** Client polls every 1000ms
+3. **Actions:** POST saves updated state to KV
+4. **Bots:** Rule-based decisions (AI integration via LM Studio still available locally)
+5. **Persistence:** Games survive edge worker restarts, 24h TTL
 
-### 3. API Route: Durable Object Binding
-```typescript
-// src/app/api/v1/durable-objects/game/[id]/route.ts
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  
-  const gameSessionDO = env.GAME_SESSIONS.get(id);
-  return gameSessionDO.fetch(req);
-}
-```
+## Migration Path
 
-### 4. Wrangler Configuration
-```toml
-# wrangler.toml
-[[durable_objects.bindings]]
-name = "GAME_SESSIONS"
-class_name = "GameSessionDO"
-script_name = "poker"
+| Phase | Latency | Architecture | Status |
+|-------|---------|--------------|--------|
+| 9.5 | 0-1000ms | Memory only | ❌ Broken on edge |
+| 14A | 0-1000ms | KV persistence | ✅ Current |
+| 14B | ~50-100ms | DO + WebSocket | 🔜 Future |
+
+---
+
+## Testing
+
+```bash
+# Local (no KV, uses in-memory)
+npm run dev
+
+# Production with KV
+npm run pages:deploy
+# Visit poker.jeremysarda.com/table/demo
 ```
 
 ---
 
-## Migration Path (Polling → WebSocket)
-
-### Phase 9.5 (Current)
-- Client polls `/api/v1/table/[id]` every 1000ms
-- Latency: 0-1000ms
-- Load: N players × 1 req/s
-
-### Phase 14 (Target)
-- Client connects WebSocket to Durable Object
-- Latency: ~50-100ms
-- Load: 1 persistent connection per player
-- Fallback: XHR polling if WebSocket unavailable
-
-### Hybrid Approach (Recommended)
-1. Keep polling for initial state load
-2. Upgrade to WebSocket for live updates
-3. Graceful degradation if DO unavailable
-4. Fallback to polling (Vercel-compatible)
-
----
-
-## Acceptance Criteria
-
-- ✅ Durable Object created and deployed
-- ✅ WebSocket upgrade works from client
-- ✅ Real-time action updates (< 200ms latency)
-- ✅ Broadcast to all players works
-- ✅ Connection recovery on disconnect
-- ✅ Server-authoritative validation (no client spoofing)
-- ✅ Hand history persisted to D1 on completion
-- ✅ Fallback to polling if DO unavailable
-- ✅ Load testing: 100 concurrent games
-- ✅ All tests passing
-- ✅ No TypeScript errors
-
----
-
-## Risks & Mitigations
-
-| Risk | Mitigation |
-|------|-----------|
-| Connection drops mid-hand | Reconnect with last known state, resume |
-| Too many concurrent sessions | Durable Object limits; scale horizontally |
-| WebSocket not supported (old browsers) | Fallback to polling, graceful degrade |
-| State divergence (bug) | Server-authoritative, replay log in DO |
-
----
-
-## Performance Targets
-
-- **Latency**: < 200ms action-to-update (WebSocket)
-- **Throughput**: 1000 concurrent games (Durable Objects)
-- **Persistence**: D1 write on hand end (< 500ms)
-- **Reliability**: 99.9% uptime (Cloudflare SLA)
-
----
-
-## Next Steps
-
-1. Design Durable Object schema
-2. Implement GameSessionDO class
-3. Build client WebSocket hook
-4. Integrate into table UI
-5. Test with bot games
-6. Load test concurrent sessions
-7. Implement fallback logic
-8. Deploy and monitor
-
----
-
-**Estimated Timeline:** 1-2 weeks (after Phase 10-13 complete)
-**Blocker:** None (Cloudflare Durable Objects included in Pages)
+*Last updated: 2026-02-12*

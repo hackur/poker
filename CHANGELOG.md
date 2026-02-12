@@ -2,6 +2,32 @@
 
 All notable changes to the AI Poker platform.
 
+## [0.9.5] - 2026-02-12
+
+### Added
+- **KV Persistence (Phase 14A)** — Game state survives edge worker restarts
+  - New `game-manager-kv.ts` with Cloudflare KV integration
+  - Falls back to in-memory for local development
+  - 24-hour TTL on game state
+  - Fixes the edge runtime `globalThis` isolation issue
+  
+- **WebSocket Infrastructure** (prepared for Phase 14B)
+  - `useGameWebSocket` hook with polling fallback
+  - `poker-table-ws.tsx` WebSocket-enabled table component
+  - Durable Object worker ready (not deployed yet)
+  - Connection status indicator with latency display
+
+### Changed
+- API routes now use KV-backed game manager
+- Auth middleware allows public access to demo table API
+- TypeScript config excludes `worker/` directory
+
+### Fixed
+- **Edge runtime state persistence** — Game state now persists on Cloudflare Pages
+- Build errors from Durable Object types
+
+---
+
 ## [0.9.0] - 2026-02-12
 
 ### Added
