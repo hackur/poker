@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listTables, createTable, type CreateTableInput } from '@/lib/table-store';
 
+export const runtime = 'edge';
+
 /** GET /api/v1/tables — List all tables */
 export async function GET() {
   return NextResponse.json({ tables: listTables() });

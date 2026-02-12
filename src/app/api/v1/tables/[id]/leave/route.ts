@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leaveTable, tableToView } from '@/lib/table-store';
 
+export const runtime = 'edge';
+
 /** POST /api/v1/tables/[id]/leave — Leave a table */
 export async function POST(
   req: NextRequest,

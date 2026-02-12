@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { joinTable, tableToView } from '@/lib/table-store';
 
+export const runtime = 'edge';
+
 /** POST /api/v1/tables/[id]/join — Join a table */
 export async function POST(
   req: NextRequest,
