@@ -1,5 +1,6 @@
 'use client';
 
+
 /**
  * Phase 12: Tournament Details + Bracket View
  * /tournaments/[id]

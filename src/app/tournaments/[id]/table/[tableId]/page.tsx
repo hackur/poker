@@ -1,5 +1,7 @@
 'use client';
 
+export const runtime = 'edge';
+
 /**
  * Phase 12: Tournament Table Play Page
  * /tournaments/[id]/table/[tableId]
