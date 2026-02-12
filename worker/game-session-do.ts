@@ -175,6 +175,11 @@ export class GameSessionDO {
       return this.handleWebSocket(request, url);
     }
 
+    // Non-WebSocket request to /ws endpoint
+    if (path === '/ws') {
+      return new Response('WebSocket upgrade required', { status: 426 });
+    }
+
     // REST API fallback
     switch (request.method) {
       case 'GET':
@@ -1024,8 +1029,47 @@ export class GameSessionDO {
   }
 }
 
+interface Env {
+  GAME_SESSIONS: DurableObjectNamespace;
+}
+
 export default {
-  async fetch(): Promise<Response> {
-    return new Response('Durable Object Worker');
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    
+    // CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Upgrade',
+        },
+      });
+    }
+
+    // Route /ws and /api/* to the appropriate DO
+    const gameId = url.searchParams.get('gameId') ?? url.pathname.split('/')[2] ?? 'default';
+    const doId = env.GAME_SESSIONS.idFromName(gameId);
+    const stub = env.GAME_SESSIONS.get(doId);
+
+    // Forward the request to the DO
+    const doUrl = new URL(request.url);
+    doUrl.pathname = url.pathname.startsWith('/ws') ? '/ws' : url.pathname;
+    
+    const response = await stub.fetch(new Request(doUrl.toString(), request));
+    
+    // Add CORS headers to response
+    if (response.status !== 101) {
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set('Access-Control-Allow-Origin', '*');
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
+    }
+    
+    return response;
   },
 };

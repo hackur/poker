@@ -747,6 +747,13 @@ interface GameSettings {
   rebuyStack: number;
   smallBlind: number;
   bigBlind: number;
+  deliberationEnabled: boolean;
+  deliberationMaxSteps: number;
+  deliberationStepTimeoutMs: number;
+  forceRuleBased: boolean;
+  mistakesEnabled: boolean;
+  mistakeFrequency: number;
+  mistakeSeverity: number;
 }
 
 function ControlsTab({ gameState, onResetGame }: { gameState: PlayerGameView | null; onResetGame?: () => void }) {
@@ -815,6 +822,126 @@ function ControlsTab({ gameState, onResetGame }: { gameState: PlayerGameView | n
         </div>
       )}
       {saving && <div className="text-[10px] text-orange-400">Saving...</div>}
+
+      <SectionHeader title="Bot Realism" />
+      {settings && (
+        <div className="space-y-3">
+          {/* Mistakes Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-800 bg-gray-900">
+            <div>
+              <div className="text-sm text-white font-medium">
+                {settings.mistakesEnabled ? '🎭 Human-Like Mistakes' : '🎯 Perfect Play'}
+              </div>
+              <div className="text-[10px] text-gray-500 mt-0.5">
+                {settings.mistakesEnabled
+                  ? 'Bots occasionally make realistic errors'
+                  : 'Bots play optimally (no mistakes)'}
+              </div>
+            </div>
+            <button
+              onClick={() => save({ mistakesEnabled: !settings.mistakesEnabled })}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                !settings.mistakesEnabled ? 'bg-gray-700' : 'bg-orange-600'
+              }`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                !settings.mistakesEnabled ? 'left-0.5' : 'left-5.5'
+              }`} />
+            </button>
+          </div>
+
+          {settings.mistakesEnabled && (
+            <>
+              <ConfigSlider
+                label="Mistake Frequency"
+                value={settings.mistakeFrequency}
+                min={0} max={0.5} step={0.01}
+                format={(v) => `${(v * 100).toFixed(0)}%`}
+                onChange={(v) => save({ mistakeFrequency: v })}
+              />
+              <ConfigSlider
+                label="Mistake Severity"
+                value={settings.mistakeSeverity}
+                min={0} max={1} step={0.05}
+                format={(v) => `${(v * 100).toFixed(0)}%`}
+                onChange={(v) => save({ mistakeSeverity: v })}
+              />
+              <div className="text-[10px] text-gray-500 p-2 bg-gray-900/50 rounded">
+                <div className="font-medium text-gray-400 mb-1">Mistake Types:</div>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>Hero-calls (should have folded)</li>
+                  <li>Scared folds (had equity)</li>
+                  <li>Min-clicks / Overbets</li>
+                  <li>Slow-plays (missed value)</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      <SectionHeader title="Bot AI Mode" />
+      {settings && (
+        <div className="space-y-3">
+          {/* AI / Rule-Based Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-800 bg-gray-900">
+            <div>
+              <div className="text-sm text-white font-medium">
+                {settings.forceRuleBased ? '🧮 Rule-Based Mode' : '🤖 AI Mode'}
+              </div>
+              <div className="text-[10px] text-gray-500 mt-0.5">
+                {settings.forceRuleBased
+                  ? 'All bots use parameterized rules (no LLM calls)'
+                  : 'Bots use LLM inference with rule-based fallback'}
+              </div>
+            </div>
+            <button
+              onClick={() => save({ forceRuleBased: !settings.forceRuleBased })}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                settings.forceRuleBased ? 'bg-gray-700' : 'bg-green-600'
+              }`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                settings.forceRuleBased ? 'left-0.5' : 'left-5.5'
+              }`} />
+            </button>
+          </div>
+
+          {/* Deliberation Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border border-gray-800 bg-gray-900">
+            <div>
+              <div className="text-sm text-white font-medium">
+                {settings.deliberationEnabled ? '🧠 Multi-Turn Deliberation' : '⚡ Single-Shot Mode'}
+              </div>
+              <div className="text-[10px] text-gray-500 mt-0.5">
+                {settings.deliberationEnabled
+                  ? `${settings.deliberationMaxSteps} self-questioning steps before deciding`
+                  : 'One prompt → one decision (faster)'}
+              </div>
+            </div>
+            <button
+              onClick={() => save({ deliberationEnabled: !settings.deliberationEnabled })}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                !settings.deliberationEnabled ? 'bg-gray-700' : 'bg-indigo-600'
+              }`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                !settings.deliberationEnabled ? 'left-0.5' : 'left-5.5'
+              }`} />
+            </button>
+          </div>
+
+          {settings.deliberationEnabled && (
+            <ConfigSlider
+              label="Deliberation Steps"
+              value={settings.deliberationMaxSteps}
+              min={1} max={5} step={1}
+              format={(v) => `${v} steps`}
+              onChange={(v) => save({ deliberationMaxSteps: v })}
+            />
+          )}
+        </div>
+      )}
 
       <SectionHeader title="Game Controls" />
       <button onClick={onResetGame}

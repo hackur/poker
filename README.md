@@ -51,6 +51,51 @@ Bots use a hybrid approach:
 | GPT | gpt-4o | Maniac | OpenRouter |
 | Gemini | gemini-2.5-flash | Tight-Passive | OpenRouter |
 
+### LM Studio Setup
+
+LM Studio provides local LLM inference via an OpenAI-compatible API. This is the recommended way to run AI bots without cloud costs.
+
+#### 1. Install & Start LM Studio
+1. Download [LM Studio](https://lmstudio.ai/) and install
+2. Load a model (recommended: **Nemotron 3 Nano 30B**, **Qwen3 Coder 30B**, or **Mistral Small 24B**)
+3. Start the local server — it runs at `http://localhost:1234/v1` by default
+
+#### 2. Connect to Poker
+1. Start the poker dev server: `npm run dev`
+2. Open `http://localhost:3800/table/demo`
+3. Press `D` to open the Debug Panel → **Drivers** tab
+4. Find your model and click **🔥 Warm Up** to preload it
+5. The status dot turns green when connected ✓
+
+#### 3. Bot AI Configuration (Debug Panel → Controls)
+- **AI Mode toggle** — Switch between LLM-powered decisions and pure rule-based
+- **Deliberation toggle** — Enable multi-turn self-questioning (more thoughtful but slower)
+- **Deliberation Steps** — How many internal questions before deciding (1-5)
+- **Bot Think Time** — Min/max simulated thinking delay for realism
+- **AI Timeout** — Max time to wait for model response (set ∞ for unlimited)
+- **Mistake Frequency** — How often bots make human-like errors (0-50%)
+- **Mistake Severity** — How bad the mistakes are when they happen
+
+#### 4. How It Works
+- All bots share the currently loaded LM Studio model (avoids model swapping)
+- Each bot has a unique **personality** (system prompt) and **playstyle** (aggression, tightness, bluff frequency)
+- A keepalive ping prevents LM Studio from unloading the model
+- If LM Studio is offline or the model fails, bots automatically fall back to rule-based play
+- Mistakes include: hero-calls, scared folds, bet missizing, slow-plays — just like real humans
+
+#### 5. Supported Models
+
+Any model that supports chat completions works. Tested models:
+
+| Model | Size | Speed | Notes |
+|-------|------|-------|-------|
+| Nemotron 3 Nano | 30B | Fast | Uses `reasoning_content` field |
+| Qwen3 Coder | 30B | Fast | Analytical, great at JSON output |
+| GLM 4.7 Flash | ~8B | Very Fast | Quick decisions, loose style |
+| Mistral Small | 24B | Medium | Balanced, good reasoning |
+| DeepSeek R1 | 8B | Medium | Deep reasoning chains |
+| Gemma 3N | ~4B | Very Fast | Ultra-tight personality |
+
 ## Debug Panel
 
 Press `D` to open the debug panel:

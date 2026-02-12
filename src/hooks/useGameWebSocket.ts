@@ -78,6 +78,16 @@ export function useGameWebSocket(opts: UseGameWebSocketOptions): UseGameWebSocke
   // ============================================================
 
   const getWebSocketUrl = useCallback(() => {
+    // In production, connect to the DO worker
+    const isProduction = typeof window !== 'undefined' && 
+      (window.location.hostname.includes('pages.dev') || window.location.hostname.includes('jeremysarda.com'));
+    
+    if (isProduction) {
+      // Connect to the DO worker deployed on Workers
+      return `wss://poker-game-sessions.jeremy-1c5.workers.dev/ws?gameId=${encodeURIComponent(gameId)}&playerId=${encodeURIComponent(playerId)}`;
+    }
+    
+    // Local dev - try same-origin WS (will fail and fallback to polling)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     return `${protocol}//${host}/api/v1/games/${gameId}/ws?playerId=${encodeURIComponent(playerId)}`;
@@ -155,7 +165,8 @@ export function useGameWebSocket(opts: UseGameWebSocketOptions): UseGameWebSocke
       };
 
       ws.onerror = (event) => {
-        console.error('[WS] Error:', event);
+        // Log as warning since we have polling fallback
+        console.warn('[WS] Connection unavailable (falling back to polling):', event);
         setConnectionState('error');
         onError?.(new Error('WebSocket error'));
       };

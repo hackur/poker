@@ -13,4 +13,4 @@ bindings = [
 # Migrations for Durable Objects
 [[migrations]]
 tag = "v1"
-new_classes = ["GameSessionDO"]
+new_sqlite_classes = ["GameSessionDO"]

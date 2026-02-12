@@ -336,8 +336,8 @@ export default function LobbyPage() {
             <div className="hidden sm:flex items-center gap-4 text-sm">
               <Link href="/lobby" className="text-[#14b8a6]">Lobby</Link>
               <Link href="/table/demo" className="text-gray-400 hover:text-white transition-colors">Quick Play</Link>
-              {user?.role === 'superadmin' && (
-                <Link href="/admin" className="text-orange-400 hover:text-orange-300">Admin</Link>
+              {(user?.role === 'superadmin' || user?.role === 'admin') && (
+                <Link href="/admin" className="text-teal-400 hover:text-teal-300">⚙ Admin</Link>
               )}
             </div>
           </div>

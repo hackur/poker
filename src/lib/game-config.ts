@@ -24,6 +24,14 @@ export interface GameSettings {
   deliberationMaxSteps: number;
   /** Timeout per deliberation step in ms */
   deliberationStepTimeoutMs: number;
+  /** Force all bots to use rule-based (disable AI) */
+  forceRuleBased: boolean;
+  /** Enable human-like mistakes (hero calls, scared folds, missizing) */
+  mistakesEnabled: boolean;
+  /** Mistake frequency: 0 = perfect play, 1 = constant mistakes */
+  mistakeFrequency: number;
+  /** Mistake severity: how bad the mistakes are (0-1) */
+  mistakeSeverity: number;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -37,6 +45,10 @@ export const DEFAULT_SETTINGS: GameSettings = {
   deliberationEnabled: true,
   deliberationMaxSteps: 3,
   deliberationStepTimeoutMs: 5000,
+  forceRuleBased: false,
+  mistakesEnabled: true,
+  mistakeFrequency: 0.08,
+  mistakeSeverity: 0.4,
 };
 
 const KEY = '__pokerGameSettings__';

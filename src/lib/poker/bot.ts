@@ -76,8 +76,10 @@ export async function computeBotActionAsync(
   const player = state.players.find((p) => p.id === playerId);
   if (!player || validActions.length === 0) return { type: 'fold' };
 
-  // Try AI model if driver is available and connected
-  if (profile.driver && profile.driver.enabled && profile.driver.status === 'connected') {
+  const settings = getSettings();
+
+  // Try AI model if driver is available and connected (and not forced rule-based)
+  if (!settings.forceRuleBased && profile.driver && profile.driver.enabled && profile.driver.status === 'connected') {
     try {
       const gameCtx = buildGameContext(state, playerId, validActions);
       const settings = getSettings();
@@ -123,6 +125,32 @@ export async function computeBotActionAsync(
           deliberation: result, // Include full deliberation for debug panel
         });
 
+        // Apply occasional human-like mistakes
+        const mistake = maybeApplyMistake(action, validActions, profile, state, playerId);
+        if (mistake.wasMistake) {
+          logDecision({
+            decisionId: uuid(),
+            botId: playerId,
+            botName: profile.name,
+            modelId: profile.driver.modelId,
+            provider: profile.driver.provider,
+            sessionId: player.sessionId,
+            prompt: '(mistake override)',
+            rawResponse: '',
+            action: mistake.action,
+            reasoning: `🎭 MISTAKE: ${mistake.mistakeType} — original was ${action.type}${action.amount ? ` $${action.amount}` : ''}`,
+            handAssessment: 'Human-like error',
+            inferenceTimeMs: 0,
+            isFallback: false,
+            timestamp: Date.now(),
+            handNumber: state.handNumber,
+            gameId: state.id,
+            gameUuid: state.gameId,
+            handUuid: state.handId,
+            street: state.phase,
+          });
+          return mistake.action;
+        }
         return action;
       }
       
@@ -159,6 +187,32 @@ export async function computeBotActionAsync(
         street: state.phase,
       });
 
+      // Apply occasional human-like mistakes
+      const mistake2 = maybeApplyMistake(action, validActions, profile, state, playerId);
+      if (mistake2.wasMistake) {
+        logDecision({
+          decisionId: uuid(),
+          botId: playerId,
+          botName: profile.name,
+          modelId: profile.driver.modelId,
+          provider: profile.driver.provider,
+          sessionId: player.sessionId,
+          prompt: '(mistake override)',
+          rawResponse: '',
+          action: mistake2.action,
+          reasoning: `🎭 MISTAKE: ${mistake2.mistakeType} — original was ${action.type}${action.amount ? ` $${action.amount}` : ''}`,
+          handAssessment: 'Human-like error',
+          inferenceTimeMs: 0,
+          isFallback: false,
+          timestamp: Date.now(),
+          handNumber: state.handNumber,
+          gameId: state.id,
+          gameUuid: state.gameId,
+          handUuid: state.handId,
+          street: state.phase,
+        });
+        return mistake2.action;
+      }
       return action;
     } catch (err) {
       console.warn(`[Bot] AI model failed for ${profile.name}, falling back to rule-based:`, err);
@@ -375,6 +429,97 @@ function calcBetSize(action: ValidAction, strength: number, state: GameState, ag
   const pot = state.pots.reduce((sum, p) => sum + p.amount, 0);
   const potFraction = 0.33 + strength * 0.33 + aggression * 0.34;
   return Math.max(min, Math.min(max, Math.round(pot * potFraction)));
+}
+
+// ============================================================
+// Human-Like Mistakes System
+// ============================================================
+
+interface MistakeResult {
+  action: PlayerAction;
+  wasMistake: boolean;
+  mistakeType?: string;
+}
+
+/**
+ * Occasionally introduce human-like mistakes for realism.
+ * Mistakes are more likely when:
+ * - The decision is close (marginal spots)
+ * - The bot has a loose/aggressive personality
+ * - Late in a long session (tilt simulation)
+ */
+function maybeApplyMistake(
+  originalAction: PlayerAction,
+  validActions: ValidAction[],
+  profile: BotProfile,
+  state: GameState,
+  playerId: string,
+): MistakeResult {
+  const settings = getSettings();
+  
+  // Check if mistakes are enabled
+  if (!settings.mistakesEnabled) {
+    return { action: originalAction, wasMistake: false };
+  }
+  
+  const freq = settings.mistakeFrequency;
+  const severity = settings.mistakeSeverity;
+  
+  if (freq <= 0 || Math.random() > freq) {
+    return { action: originalAction, wasMistake: false };
+  }
+
+  // Pick a mistake type based on personality
+  const roll = Math.random();
+  const player = state.players.find(p => p.id === playerId);
+  
+  if (roll < 0.3 && originalAction.type === 'fold') {
+    // Mistake: hero-call instead of folding (loose players do this more)
+    if (Math.random() < (1 - profile.tightness) * severity) {
+      const callAction = validActions.find(a => a.type === 'call');
+      if (callAction) {
+        return { action: { type: 'call' }, wasMistake: true, mistakeType: 'hero-call (should have folded)' };
+      }
+    }
+  } else if (roll < 0.5 && (originalAction.type === 'call' || originalAction.type === 'check')) {
+    // Mistake: fold a decent hand (tight players overtighten sometimes)
+    if (Math.random() < profile.tightness * severity * 0.5) {
+      if (validActions.some(a => a.type === 'fold')) {
+        return { action: { type: 'fold' }, wasMistake: true, mistakeType: 'scared fold (had equity)' };
+      }
+    }
+  } else if (roll < 0.7 && (originalAction.type === 'raise' || originalAction.type === 'bet')) {
+    // Mistake: missize the bet (too small or too big)
+    if (originalAction.amount) {
+      const sizing = Math.random() < 0.5 ? 0.4 : 2.2; // min-click or overbet
+      const raiseAction = validActions.find(a => a.type === 'raise' || a.type === 'bet');
+      if (raiseAction && raiseAction.minAmount && raiseAction.maxAmount) {
+        const mistakeAmount = Math.round(originalAction.amount * sizing);
+        const clamped = Math.max(raiseAction.minAmount, Math.min(raiseAction.maxAmount, mistakeAmount));
+        return {
+          action: { type: originalAction.type, amount: clamped },
+          wasMistake: true,
+          mistakeType: sizing < 1 ? 'min-click (underbet)' : 'overbet (too aggressive)',
+        };
+      }
+    }
+  } else if (roll < 0.85) {
+    // Mistake: slow-play a strong hand (check instead of bet/raise)
+    if ((originalAction.type === 'bet' || originalAction.type === 'raise') && 
+        Math.random() < severity * 0.6) {
+      const checkAction = validActions.find(a => a.type === 'check');
+      if (checkAction) {
+        return { action: { type: 'check' }, wasMistake: true, mistakeType: 'slow-play (missed value)' };
+      }
+      const callAction = validActions.find(a => a.type === 'call');
+      if (callAction) {
+        return { action: { type: 'call' }, wasMistake: true, mistakeType: 'flat call (missed raise)' };
+      }
+    }
+  }
+  // else: no applicable mistake, play normally
+
+  return { action: originalAction, wasMistake: false };
 }
 
 // ============================================================

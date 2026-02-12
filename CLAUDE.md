@@ -5,7 +5,7 @@ Full-stack Texas Hold'em poker platform with AI bot players powered by local and
 ~11,000+ lines of TypeScript across 70+ files.
 
 ## Current Status (2026-02-12)
-- **Phases Complete:** 1-9 + Audio + Player Profiles + Analytics
+- **Phases Complete:** 1-9 + Audio + Player Profiles + Analytics + Phase 16 (Advanced Bot AI)
 - **Deployed:** poker-70o.pages.dev (Cloudflare Pages)
 - **Custom Domain:** poker.jeremysarda.com (CNAME pending)
 - **Analytics:** GA4 (G-62WRD1JVX9) + Clarity (vg3f6aaou9)

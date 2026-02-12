@@ -16,7 +16,7 @@ interface ResponsiveTableWrapperProps {
 export function ResponsiveTableWrapper({ 
   tableId, 
   playerId = 'human-1',
-  useWebSocket = false,
+  useWebSocket = true,
 }: ResponsiveTableWrapperProps) {
   const { isDesktop } = useResponsive();
 
