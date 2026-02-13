@@ -1,8 +1,8 @@
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
-import { deleteTable, getTable, leaveTable } from '@/lib/table-store';
+import { getCurrentUser } from '@/lib/auth-kv';
+import { deleteTable, getTable, leaveTable } from '@/lib/table-store-kv';
 import { getGameManagerV2 } from '@/lib/game-manager-v2';
 
 /** DELETE /api/v1/admin/tables/[id] — Close/delete a table */
@@ -16,7 +16,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const table = getTable(id);
+  const table = await getTable(id);
   if (!table) {
     return NextResponse.json({ error: 'Table not found' }, { status: 404 });
   }
@@ -26,7 +26,7 @@ export async function DELETE(
   gm.resetGame(id, '');
 
   // Delete from table store
-  deleteTable(id);
+  await deleteTable(id);
 
   return NextResponse.json({ success: true, message: `Table ${id} deleted` });
 }
@@ -46,12 +46,12 @@ export async function POST(
   const { action, playerId } = body;
 
   if (action === 'kick' && playerId) {
-    const table = getTable(id);
+    const table = await getTable(id);
     if (!table) {
       return NextResponse.json({ error: 'Table not found' }, { status: 404 });
     }
 
-    const result = leaveTable(id, playerId);
+    const result = await leaveTable(id, playerId);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 404 });
     }

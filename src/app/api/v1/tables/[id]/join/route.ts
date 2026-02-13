@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { joinTable, tableToView } from '@/lib/table-store';
+import { joinTable, tableToView } from '@/lib/table-store-kv';
 
 export const runtime = 'edge';
 
@@ -20,7 +20,7 @@ export async function POST(
       return NextResponse.json({ error: 'Valid buyIn is required' }, { status: 400 });
     }
 
-    const result = joinTable(id, playerId, displayName, Number(buyIn));
+    const result = await joinTable(id, playerId, displayName, Number(buyIn));
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

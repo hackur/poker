@@ -94,6 +94,7 @@ export interface GameState {
   deck: Card[];
   deckIndex: number;
   isActive: boolean;
+  maxPlayers: number;
   smallBlind: number;
   bigBlind: number;
   lastAction?: { seat: number; action: ActionType; amount?: number };
@@ -118,6 +119,7 @@ export interface PlayerGameView {
   mySeat: number;
   myStack: number;
   validActions: ValidAction[];
+  maxPlayers: number;
   handNumber: number;
   smallBlind: number;
   bigBlind: number;

@@ -2,8 +2,11 @@
  * Cloudflare Context Helper
  * 
  * Safely access Cloudflare bindings (KV, D1, etc.) in Next.js on Pages.
+ * Uses @cloudflare/next-on-pages getRequestContext() for proper binding access.
  * Works in both edge runtime and local development.
  */
+
+import { getRequestContext } from '@cloudflare/next-on-pages';
 
 // Types for Cloudflare bindings
 export interface KVNamespace {
@@ -15,19 +18,30 @@ export interface KVNamespace {
 
 export interface CloudflareEnv {
   GAME_STATE?: KVNamespace;
+  [key: string]: unknown;
 }
 
 /**
  * Get the GAME_STATE KV namespace.
  * 
- * On Cloudflare Pages, KV bindings are available via process.env in edge functions.
+ * On Cloudflare Pages, bindings are accessed via getRequestContext() from
+ * @cloudflare/next-on-pages — NOT globalThis.
  * In local development, returns null (falls back to in-memory).
  */
 export function getGameStateKV(): KVNamespace | null {
-  // In edge runtime on Cloudflare, bindings are injected into the global scope
-  // by the Pages Functions runtime
   try {
-    // Check for Cloudflare-specific global binding
+    // Primary: use @cloudflare/next-on-pages request context
+    const ctx = getRequestContext();
+    const env = ctx?.env as CloudflareEnv | undefined;
+    if (env?.GAME_STATE) {
+      return env.GAME_STATE as KVNamespace;
+    }
+  } catch {
+    // Not running on Cloudflare Pages or outside request context
+  }
+
+  try {
+    // Fallback: check globalThis (some Cloudflare runtimes)
     const g = globalThis as { GAME_STATE?: KVNamespace };
     if (g.GAME_STATE) {
       return g.GAME_STATE;

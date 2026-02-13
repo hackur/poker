@@ -1,7 +1,7 @@
 export const runtime = 'edge';
 
 import { NextResponse } from 'next/server';
-import { getCurrentUser, getAllUsers } from '@/lib/auth';
+import { getCurrentUser, getAllUsers } from '@/lib/auth-kv';
 import { getHandHistory } from '@/lib/hand-history';
 import { getAllPlayerStats } from '@/lib/player-stats';
 import { listTables } from '@/lib/table-store';
@@ -13,7 +13,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  const users = getAllUsers();
+  const users = await getAllUsers();
   const history = getHandHistory();
   const stats = getAllPlayerStats();
   const tables = listTables();

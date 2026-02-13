@@ -1,26 +1,37 @@
-# ROADMAP.md — Multi-Phase Development Plan
+# ROADMAP.md -- Multi-Phase Development Plan
 
-> **Project:** AI Poker Platform  
-> **Stack:** Next.js 15 · React 19 · TypeScript · Tailwind v4 · Cloudflare Workers + Durable Objects  
-> **Total Estimated Effort:** 180–240 hours across 10 phases  
-> **Current Status:** Phase 1 complete, Phase 2 in progress  
-> **Last Updated:** 2026-02-11
+> **IMPORTANT:** This file contains the original roadmap. It is partially outdated.
+> For the current accurate phase plan, see **`docs/ROADMAP.md`**.
+>
+> Key changes since this was written:
+> - Demo content removed (Quick Play, AI Battle, Practice modes deleted)
+> - Auth migrated to KV-backed system (`auth-kv.ts`)
+> - Per-seat bot controls replace auto-fill
+> - KV persistence replaces globalThis singletons for production
+> - WebSocket + polling hybrid implemented
+
+> **Project:** AI Poker Platform
+> **Stack:** Next.js 15 . React 19 . TypeScript . Tailwind v4 . Cloudflare Pages + KV
+> **Last Updated:** 2026-02-12
 
 ---
 
 ## Phase Overview
 
+Note: This roadmap reflects the original plan. Actual implementation diverged significantly.
+See `docs/ROADMAP.md` for the current accurate phase plan.
+
 | # | Phase | Status | Est. Hours | Dependencies |
 |---|-------|--------|------------|--------------|
-| 1 | Core Engine & Prototype | ✅ DONE | 16–20 | — |
-| 2 | AI Bot Driver System | 🔶 IN PROGRESS | 12–16 | Phase 1 |
-| 3 | Authentication & User System | ⬜ TODO | 14–18 | Phase 1 |
-| 4 | Lobby, Menu & Navigation | ⬜ TODO | 12–16 | Phase 3 |
-| 5 | Real-Time WebSocket Migration | ⬜ TODO | 16–20 | Phase 4 |
+| 1 | Core Engine & Prototype | ✅ DONE | 16–20 | -- |
+| 2 | AI Bot Driver System | ✅ DONE | 12–16 | Phase 1 |
+| 3 | Authentication & User System | ✅ DONE (KV-backed) | 14–18 | Phase 1 |
+| 4 | Lobby, Menu & Navigation | ✅ DONE | 12–16 | Phase 3 |
+| 5 | Real-Time WebSocket Migration | 🔶 PARTIAL (WS + polling) | 16–20 | Phase 4 |
 | 6 | Admin Dashboard | ⬜ TODO | 14–18 | Phase 3, 5 |
 | 7 | Economy, Ledger & Security Hardening | ⬜ TODO | 16–22 | Phase 6 |
-| 8 | Polish, Animations & Sound | ⬜ TODO | 12–16 | Phase 5 |
-| 9 | Cloudflare Production Deployment | ⬜ TODO | 16–20 | Phase 7 |
+| 8 | Polish, Animations & Sound | ✅ DONE | 12–16 | Phase 5 |
+| 9 | Cloudflare Production Deployment | ✅ DONE (Pages + KV) | 16–20 | Phase 7 |
 | 10 | Tournament Mode & Advanced Features | ⬜ TODO | 20–30 | Phase 9 |
 
 ---
@@ -628,7 +639,7 @@ Phase 1-2 (NOW)              Phase 3-4                    Phase 5+              
 │   ├── app/
 │   │   ├── layout.tsx           # Root layout
 │   │   ├── globals.css          # Tailwind v4 + custom animations
-│   │   ├── page.tsx             # Redirect to /table/demo
+│   │   ├── page.tsx             # Redirect to /lobby
 │   │   ├── table/[id]/page.tsx  # Table page
 │   │   └── api/v1/
 │   │       ├── route.ts                    # Health check

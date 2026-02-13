@@ -70,20 +70,20 @@ function CreateTableModal({ onClose, onCreated }: { onClose: () => void; onCreat
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-6 w-full max-w-md"
+        className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-2xl p-6 w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold text-white mb-5">Create Table</h2>
+        <h2 className="text-xl font-bold text-[hsl(var(--card-foreground))] mb-5">Create Table</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-gray-400 text-sm mb-1">Table Name</label>
+            <label className="block text-[hsl(var(--muted-foreground))] text-sm mb-1">Table Name</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="My Cash Game"
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#14b8a6] focus:outline-none"
+              className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg px-3 py-2 text-[hsl(var(--foreground))] text-sm focus:border-[hsl(var(--ring))] focus:outline-none"
               required
             />
           </div>
@@ -91,24 +91,24 @@ function CreateTableModal({ onClose, onCreated }: { onClose: () => void; onCreat
           {/* Blinds */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-gray-400 text-sm mb-1">Small Blind ($)</label>
+              <label className="block text-[hsl(var(--muted-foreground))] text-sm mb-1">Small Blind ($)</label>
               <input
                 type="number"
                 value={smallBlind}
                 onChange={e => setSmallBlind(Number(e.target.value))}
                 min={1}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#14b8a6] focus:outline-none"
+                className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg px-3 py-2 text-[hsl(var(--foreground))] text-sm focus:border-[hsl(var(--ring))] focus:outline-none"
                 required
               />
             </div>
             <div>
-              <label className="block text-gray-400 text-sm mb-1">Big Blind ($)</label>
+              <label className="block text-[hsl(var(--muted-foreground))] text-sm mb-1">Big Blind ($)</label>
               <input
                 type="number"
                 value={bigBlind}
                 onChange={e => setBigBlind(Number(e.target.value))}
                 min={1}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#14b8a6] focus:outline-none"
+                className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg px-3 py-2 text-[hsl(var(--foreground))] text-sm focus:border-[hsl(var(--ring))] focus:outline-none"
                 required
               />
             </div>
@@ -117,24 +117,24 @@ function CreateTableModal({ onClose, onCreated }: { onClose: () => void; onCreat
           {/* Buy-in Range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-gray-400 text-sm mb-1">Min Buy-in ($)</label>
+              <label className="block text-[hsl(var(--muted-foreground))] text-sm mb-1">Min Buy-in ($)</label>
               <input
                 type="number"
                 value={minBuyIn}
                 onChange={e => setMinBuyIn(Number(e.target.value))}
                 min={1}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#14b8a6] focus:outline-none"
+                className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg px-3 py-2 text-[hsl(var(--foreground))] text-sm focus:border-[hsl(var(--ring))] focus:outline-none"
                 required
               />
             </div>
             <div>
-              <label className="block text-gray-400 text-sm mb-1">Max Buy-in ($)</label>
+              <label className="block text-[hsl(var(--muted-foreground))] text-sm mb-1">Max Buy-in ($)</label>
               <input
                 type="number"
                 value={maxBuyIn}
                 onChange={e => setMaxBuyIn(Number(e.target.value))}
                 min={1}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#14b8a6] focus:outline-none"
+                className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg px-3 py-2 text-[hsl(var(--foreground))] text-sm focus:border-[hsl(var(--ring))] focus:outline-none"
                 required
               />
             </div>
@@ -142,11 +142,11 @@ function CreateTableModal({ onClose, onCreated }: { onClose: () => void; onCreat
 
           {/* Max Players */}
           <div>
-            <label className="block text-gray-400 text-sm mb-1">Max Players</label>
+            <label className="block text-[hsl(var(--muted-foreground))] text-sm mb-1">Max Players</label>
             <select
               value={maxPlayers}
               onChange={e => setMaxPlayers(Number(e.target.value))}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#14b8a6] focus:outline-none"
+              className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg px-3 py-2 text-[hsl(var(--foreground))] text-sm focus:border-[hsl(var(--ring))] focus:outline-none"
             >
               {[2, 3, 4, 5, 6, 7, 8, 9].map(n => (
                 <option key={n} value={n}>{n} players{n === 2 ? ' (Heads-up)' : n === 6 ? ' (6-max)' : n === 9 ? ' (Full ring)' : ''}</option>
@@ -154,20 +154,20 @@ function CreateTableModal({ onClose, onCreated }: { onClose: () => void; onCreat
             </select>
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-[hsl(var(--destructive))] text-sm">{error}</p>}
 
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-800 text-gray-400 py-2.5 rounded-lg text-sm hover:text-white transition-colors"
+              className="flex-1 bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] py-2.5 rounded-lg text-sm hover:opacity-80 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 bg-[#14b8a6] hover:bg-[#0d9488] disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors"
+              className="flex-1 bg-[hsl(var(--accent))] hover:opacity-90 disabled:opacity-50 text-[hsl(var(--accent-foreground))] py-2.5 rounded-lg text-sm font-semibold transition-colors"
             >
               {submitting ? 'Creating...' : 'Create Table'}
             </button>
@@ -182,7 +182,7 @@ function CreateTableModal({ onClose, onCreated }: { onClose: () => void; onCreat
 // Join Table Modal
 // ============================================================
 
-function JoinTableModal({ table, onClose, onJoined }: { table: TableView; onClose: () => void; onJoined: () => void }) {
+function JoinTableModal({ table, user, onClose, onJoined }: { table: TableView; user: UserInfo; onClose: () => void; onJoined: () => void }) {
   const [buyIn, setBuyIn] = useState(table.minBuyIn);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -195,7 +195,7 @@ function JoinTableModal({ table, onClose, onJoined }: { table: TableView; onClos
       const res = await fetch(`/api/v1/tables/${table.id}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playerId: 'human-1', displayName: 'You', buyIn }),
+        body: JSON.stringify({ playerId: user.id, displayName: user.displayName, buyIn }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -214,14 +214,14 @@ function JoinTableModal({ table, onClose, onJoined }: { table: TableView; onClos
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-6 w-full max-w-sm"
+        className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-2xl p-6 w-full max-w-sm"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-white mb-1">Join {table.name}</h2>
-        <p className="text-gray-500 text-sm mb-5">${table.smallBlind}/${table.bigBlind} · {table.playerCount}/{table.maxPlayers} players</p>
+        <h2 className="text-lg font-bold text-[hsl(var(--card-foreground))] mb-1">Join {table.name}</h2>
+        <p className="text-[hsl(var(--muted-foreground))] text-sm mb-5">${table.smallBlind}/${table.bigBlind} · {table.playerCount}/{table.maxPlayers} players</p>
         <form onSubmit={handleJoin} className="space-y-4">
           <div>
-            <label className="block text-gray-400 text-sm mb-1">
+            <label className="block text-[hsl(var(--muted-foreground))] text-sm mb-1">
               Buy-in (${table.minBuyIn} – ${table.maxBuyIn})
             </label>
             <input
@@ -231,7 +231,7 @@ function JoinTableModal({ table, onClose, onJoined }: { table: TableView; onClos
               min={table.minBuyIn}
               max={table.maxBuyIn}
               step={table.bigBlind}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-[#14b8a6] focus:outline-none"
+              className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--input))] rounded-lg px-3 py-2 text-[hsl(var(--foreground))] text-sm focus:border-[hsl(var(--ring))] focus:outline-none"
             />
             <input
               type="range"
@@ -240,17 +240,17 @@ function JoinTableModal({ table, onClose, onJoined }: { table: TableView; onClos
               min={table.minBuyIn}
               max={table.maxBuyIn}
               step={table.bigBlind}
-              className="w-full mt-2 accent-[#14b8a6]"
+              className="w-full mt-2 accent-[hsl(var(--accent))]"
             />
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-[hsl(var(--destructive))] text-sm">{error}</p>}
 
           <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 bg-gray-800 text-gray-400 py-2.5 rounded-lg text-sm hover:text-white transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] py-2.5 rounded-lg text-sm hover:opacity-80 transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={submitting} className="flex-1 bg-[#14b8a6] hover:bg-[#0d9488] disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors">
+            <button type="submit" disabled={submitting} className="flex-1 bg-[hsl(var(--accent))] hover:opacity-90 disabled:opacity-50 text-[hsl(var(--accent-foreground))] py-2.5 rounded-lg text-sm font-semibold transition-colors">
               {submitting ? 'Joining...' : `Sit Down ($${buyIn})`}
             </button>
           </div>
@@ -301,9 +301,23 @@ export default function LobbyPage() {
   }, []);
 
   useEffect(() => {
+    // Fetch or create guest user session
     fetch('/api/v1/auth/session')
       .then(r => r.json())
-      .then(d => { if (d.user) setUser(d.user); })
+      .then(d => { 
+        if (d.user) {
+          setUser(d.user);
+        } else {
+          // If no session, the backend will auto-create a guest user on first API call
+          // We'll fetch the session again after a short delay
+          setTimeout(() => {
+            fetch('/api/v1/auth/session')
+              .then(r => r.json())
+              .then(d => { if (d.user) setUser(d.user); })
+              .catch(() => {});
+          }, 100);
+        }
+      })
       .catch(() => {});
     fetchTables();
     const interval = setInterval(fetchTables, 5000);
@@ -318,26 +332,26 @@ export default function LobbyPage() {
   const totalPlayers = tables.reduce((s, t) => s + t.playerCount, 0);
 
   async function handleLeave(tableId: string) {
+    if (!user) return;
     await fetch(`/api/v1/tables/${tableId}/leave`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId: 'human-1' }),
+      body: JSON.stringify({ playerId: user.id }),
     });
     fetchTables();
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a]">
+    <div className="min-h-screen bg-[hsl(var(--background))]">
       {/* Nav */}
-      <nav className="border-b border-gray-800 bg-[#1a1a1a]/90 backdrop-blur sticky top-0 z-30">
+      <nav className="border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/lobby" className="text-white font-bold text-lg">♠ Poker</Link>
+            <Link href="/lobby" className="text-[hsl(var(--foreground))] font-bold text-lg">♠ Poker</Link>
             <div className="hidden sm:flex items-center gap-4 text-sm">
-              <Link href="/lobby" className="text-[#14b8a6]">Lobby</Link>
-              <Link href="/table/demo" className="text-gray-400 hover:text-white transition-colors">Quick Play</Link>
+              <Link href="/lobby" className="text-[hsl(var(--accent))]">Lobby</Link>
               {(user?.role === 'superadmin' || user?.role === 'admin') && (
-                <Link href="/admin" className="text-teal-400 hover:text-teal-300">⚙ Admin</Link>
+                <Link href="/admin" className="text-[hsl(var(--accent))] hover:opacity-80">⚙ Admin</Link>
               )}
             </div>
           </div>
@@ -345,19 +359,19 @@ export default function LobbyPage() {
             {user ? (
               <>
                 <span className="text-yellow-400 text-sm font-mono">${user.balance.toLocaleString()}</span>
-                <span className="text-gray-400 text-sm">{user.displayName}</span>
+                <span className="text-[hsl(var(--muted-foreground))] text-sm">{user.displayName}</span>
                 <button
                   onClick={async () => {
                     await fetch('/api/v1/auth/logout', { method: 'POST' });
                     setUser(null);
                   }}
-                  className="text-gray-500 hover:text-white text-sm"
+                  className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] text-sm"
                 >
                   Logout
                 </button>
               </>
             ) : (
-              <Link href="/login" className="bg-[#14b8a6] hover:bg-[#0d9488] text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
+              <Link href="/login" className="bg-[hsl(var(--accent))] hover:opacity-90 text-[hsl(var(--accent-foreground))] text-sm px-4 py-1.5 rounded-lg transition-colors">
                 Sign In
               </Link>
             )}
@@ -370,14 +384,14 @@ export default function LobbyPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-white">Cash Game Lobby</h1>
-            <p className="text-gray-500 text-sm mt-1">
+            <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Cash Game Lobby</h1>
+            <p className="text-[hsl(var(--muted-foreground))] text-sm mt-1">
               {tables.length} table{tables.length !== 1 ? 's' : ''} · {totalPlayers} player{totalPlayers !== 1 ? 's' : ''} seated
             </p>
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="bg-[#14b8a6] hover:bg-[#0d9488] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors"
+            className="bg-[hsl(var(--accent))] hover:opacity-90 text-[hsl(var(--accent-foreground))] px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors"
           >
             + Create Table
           </button>
@@ -395,8 +409,8 @@ export default function LobbyPage() {
               onClick={() => setFilter(f.key)}
               className={`px-4 py-1.5 rounded-lg text-sm transition-colors ${
                 filter === f.key
-                  ? 'bg-[#14b8a6] text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white'
+                  ? 'bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))]'
+                  : 'bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] hover:opacity-80'
               }`}
             >
               {f.label}
@@ -406,14 +420,14 @@ export default function LobbyPage() {
 
         {/* Table Grid */}
         {loading ? (
-          <div className="text-gray-500 text-center py-20">Loading tables...</div>
+          <div className="text-[hsl(var(--muted-foreground))] text-center py-20">Loading tables...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-500 text-lg mb-2">No tables yet</p>
-            <p className="text-gray-600 text-sm mb-6">Create one to get started!</p>
+            <p className="text-[hsl(var(--muted-foreground))] text-lg mb-2">No tables yet</p>
+            <p className="text-[hsl(var(--muted-foreground))] opacity-70 text-sm mb-6">Create one to get started!</p>
             <button
               onClick={() => setShowCreate(true)}
-              className="bg-[#14b8a6] hover:bg-[#0d9488] text-white px-6 py-2.5 rounded-lg font-semibold text-sm transition-colors"
+              className="bg-[hsl(var(--accent))] hover:opacity-90 text-[hsl(var(--accent-foreground))] px-6 py-2.5 rounded-lg font-semibold text-sm transition-colors"
             >
               + Create Table
             </button>
@@ -421,14 +435,14 @@ export default function LobbyPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filtered.map(table => {
-              const isSeated = table.players.some(p => p.id === 'human-1');
+              const isSeated = user ? table.players.some(p => p.id === user.id) : false;
               return (
                 <div
                   key={table.id}
-                  className="bg-gray-900/60 rounded-xl border border-gray-800 p-5 hover:border-gray-700 transition-colors group"
+                  className="bg-[hsl(var(--card))] rounded-xl border border-[hsl(var(--border))] p-5 hover:border-[hsl(var(--accent))]/50 transition-colors group"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-white font-semibold group-hover:text-[#14b8a6] transition-colors">
+                    <h3 className="text-[hsl(var(--card-foreground))] font-semibold group-hover:text-[hsl(var(--accent))] transition-colors">
                       {table.name}
                     </h3>
                     <StatusBadge status={table.status} />
@@ -436,25 +450,25 @@ export default function LobbyPage() {
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="text-gray-600 text-xs">Stakes</span>
-                      <div className="text-white font-mono">${table.smallBlind}/${table.bigBlind}</div>
+                      <span className="text-[hsl(var(--muted-foreground))] text-xs">Stakes</span>
+                      <div className="text-[hsl(var(--card-foreground))] font-mono">${table.smallBlind}/${table.bigBlind}</div>
                     </div>
                     <div>
-                      <span className="text-gray-600 text-xs">Buy-in</span>
-                      <div className="text-white font-mono text-xs mt-0.5">${table.minBuyIn}–${table.maxBuyIn}</div>
+                      <span className="text-[hsl(var(--muted-foreground))] text-xs">Buy-in</span>
+                      <div className="text-[hsl(var(--card-foreground))] font-mono text-xs mt-0.5">${table.minBuyIn}–${table.maxBuyIn}</div>
                     </div>
                     <div>
-                      <span className="text-gray-600 text-xs">Players</span>
-                      <div className="text-white">
+                      <span className="text-[hsl(var(--muted-foreground))] text-xs">Players</span>
+                      <div className="text-[hsl(var(--card-foreground))]">
                         {table.playerCount}/{table.maxPlayers}
                         {table.status !== 'full' && table.playerCount > 0 && (
-                          <span className="text-[#14b8a6] ml-1 text-xs">({table.maxPlayers - table.playerCount} open)</span>
+                          <span className="text-[hsl(var(--accent))] ml-1 text-xs">({table.maxPlayers - table.playerCount} open)</span>
                         )}
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-600 text-xs">Format</span>
-                      <div className="text-gray-300 text-xs mt-0.5">
+                      <span className="text-[hsl(var(--muted-foreground))] text-xs">Format</span>
+                      <div className="text-[hsl(var(--card-foreground))] opacity-80 text-xs mt-0.5">
                         {table.maxPlayers === 2 ? 'Heads-up' : table.maxPlayers <= 6 ? `${table.maxPlayers}-max` : 'Full Ring'}
                       </div>
                     </div>
@@ -462,10 +476,10 @@ export default function LobbyPage() {
 
                   {/* Players list */}
                   {table.playerCount > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-800">
+                    <div className="mt-3 pt-3 border-t border-[hsl(var(--border))]">
                       <div className="flex flex-wrap gap-1">
                         {table.players.map(p => (
-                          <span key={p.id} className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded">
+                          <span key={p.id} className="text-xs bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] px-2 py-0.5 rounded">
                             {p.displayName}
                           </span>
                         ))}
@@ -479,13 +493,13 @@ export default function LobbyPage() {
                       <>
                         <button
                           onClick={() => router.push(`/table/${table.id}`)}
-                          className="flex-1 bg-[#14b8a6] hover:bg-[#0d9488] text-white py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="flex-1 bg-[hsl(var(--accent))] hover:opacity-90 text-[hsl(var(--accent-foreground))] py-2 rounded-lg text-sm font-medium transition-colors"
                         >
                           Go to Table
                         </button>
                         <button
                           onClick={() => handleLeave(table.id)}
-                          className="bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 px-4 py-2 rounded-lg text-sm transition-colors"
+                          className="bg-[hsl(var(--secondary))] hover:bg-[hsl(var(--destructive))] text-[hsl(var(--secondary-foreground))] hover:text-[hsl(var(--destructive-foreground))] px-4 py-2 rounded-lg text-sm transition-colors"
                         >
                           Leave
                         </button>
@@ -493,14 +507,14 @@ export default function LobbyPage() {
                     ) : table.status === 'full' ? (
                       <button
                         onClick={() => router.push(`/table/${table.id}`)}
-                        className="flex-1 bg-gray-800 text-gray-400 hover:text-white py-2 rounded-lg text-sm font-medium transition-colors"
+                        className="flex-1 bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] hover:opacity-80 py-2 rounded-lg text-sm font-medium transition-colors"
                       >
                         Spectate
                       </button>
                     ) : (
                       <button
                         onClick={() => setJoinTarget(table)}
-                        className="flex-1 bg-gray-800 hover:bg-[#14b8a6] text-gray-400 hover:text-white py-2 rounded-lg text-sm font-medium transition-all"
+                        className="flex-1 bg-[hsl(var(--secondary))] hover:bg-[hsl(var(--accent))] text-[hsl(var(--secondary-foreground))] hover:text-[hsl(var(--accent-foreground))] py-2 rounded-lg text-sm font-medium transition-all"
                       >
                         Join Table
                       </button>
@@ -512,31 +526,11 @@ export default function LobbyPage() {
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <QuickAction title="Quick Play" description="Jump into the demo table with 5 AI opponents" href="/table/demo" icon="⚡" />
-          <QuickAction title="Heads Up vs Nemotron" description="1v1 against Nemotron Nano — local AI on M3 Max" href="/table/heads-up-nemotron-local" icon="🧠" />
-          <QuickAction title="AI Battle" description="Watch AI models play against each other" href="/table/ai-battle" icon="🤖" />
-          <QuickAction title="Practice" description="Low-stakes table to learn the game" href="/table/practice" icon="📚" />
-        </div>
       </div>
 
       {/* Modals */}
       {showCreate && <CreateTableModal onClose={() => setShowCreate(false)} onCreated={fetchTables} />}
-      {joinTarget && <JoinTableModal table={joinTarget} onClose={() => setJoinTarget(null)} onJoined={fetchTables} />}
+      {joinTarget && user && <JoinTableModal table={joinTarget} user={user} onClose={() => setJoinTarget(null)} onJoined={fetchTables} />}
     </div>
-  );
-}
-
-function QuickAction({ title, description, href, icon }: { title: string; description: string; href: string; icon: string }) {
-  return (
-    <Link
-      href={href}
-      className="bg-gray-900/30 border border-gray-800 rounded-xl p-5 hover:border-[#14b8a6]/50 hover:bg-gray-900/60 transition-colors group"
-    >
-      <span className="text-2xl">{icon}</span>
-      <h3 className="text-white font-semibold mt-2 group-hover:text-[#14b8a6] transition-colors">{title}</h3>
-      <p className="text-gray-500 text-sm mt-1">{description}</p>
-    </Link>
   );
 }

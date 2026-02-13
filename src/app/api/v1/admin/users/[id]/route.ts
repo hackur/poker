@@ -1,7 +1,7 @@
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, getUserById, updateUser, publicUser } from '@/lib/auth';
+import { getCurrentUser, getUserById, updateUser, publicUser } from '@/lib/auth-kv';
 
 /** PATCH /api/v1/admin/users/[id] — Update user role or balance */
 export async function PATCH(
@@ -14,7 +14,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const target = getUserById(id);
+  const target = await getUserById(id);
   if (!target) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
@@ -47,7 +47,7 @@ export async function PATCH(
     updates.displayName = String(body.displayName);
   }
 
-  const updated = updateUser(id, updates as Parameters<typeof updateUser>[1]);
+  const updated = await updateUser(id, updates as Parameters<typeof updateUser>[1]);
   if (!updated) {
     return NextResponse.json({ error: 'Update failed' }, { status: 500 });
   }

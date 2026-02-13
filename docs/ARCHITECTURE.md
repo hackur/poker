@@ -11,11 +11,12 @@
 │  │  UI     │  │  Canvas  │  │  Panel   │           │
 │  └────┬────┘  └────┬─────┘  └────┬─────┘           │
 │       └──────┬─────┴─────────────┘                  │
-│              │ REST API (polling)                   │
+│              │ WebSocket + REST API (polling fallback)│
 └──────────────┼──────────────────────────────────────┘
                │
      ┌─────────▼───────────┐
      │  Next.js API Routes  │
+     │  (Edge Runtime)      │
      │                      │
      │  • Game state GET    │
      │  • Action POST       │
@@ -25,29 +26,32 @@
      └─────────┬────────────┘
                │
      ┌─────────▼───────────┐
-     │   Game Manager       │
-     │   (globalThis)       │
+     │  Cloudflare KV       │
+     │  (GAME_STATE)        │
      │                      │
-     │  • Poker Engine      │
-     │  • Bot Controller    │
-     │  • Hand History      │
-     │  • Settings          │
+     │  • game:{id} state   │
+     │  • table:{id} lobby  │
+     │  • user:{id} auth    │
+     │  • session:{id}      │
+     │  • tables:index      │
      └─────────────────────┘
 ```
 
-## Current Architecture (Prototype)
+## Current Architecture
 
-The prototype uses a **tick-based polling** approach:
+The platform uses **KV-backed persistence** with **WebSocket + polling** hybrid:
 
-1. **Client polls** `GET /api/v1/table/:id` every 1000ms
-2. **Game Manager** advances state on each poll (tick)
-3. **Bot decisions** fire during ticks when think time has elapsed
-4. **No background timers** — all state advances on request
+1. **Client connects** via WebSocket (`useGameWebSocket` hook) to Durable Object worker
+2. **Fallback:** If WebSocket unavailable, polls `GET /api/v1/table/:id` every 1000ms
+3. **Game state** loaded from/saved to Cloudflare KV on every action
+4. **Bot decisions** fire during ticks when think time has elapsed
+5. **Auth** validated via cookie session against KV-stored sessions
 
-### Why Polling (for now)
-- Simpler than WebSocket during development
-- No connection lifecycle to manage
-- Easy to debug (just curl the API)
+### Why KV + Polling Hybrid
+- KV persistence solves edge worker isolate state loss
+- WebSocket provides real-time updates when DO worker is available
+- Polling fallback ensures the game works in all environments
+- In-memory fallback for local development (no KV required)
 
 ## Identification System
 
@@ -59,19 +63,41 @@ All entities use **UUIDs** for proper audit trails and distributed system suppor
 | Hand | UUID v4 | `e8fc341f-68e2-4ed0-bfd7-6b28d5234840` |
 | Decision | UUID v4 | `a1b2c3d4-...` |
 | Bot Session | UUID v4 | `19b3e7cc-...` |
+| User | UUID v4 | `a3f2b1c4-...` |
 
-Legacy slug IDs (`demo`, `heads-up-nemotron-local`) are retained for URL routing.
+## Authentication Model
+
+All API endpoints use cookie-based session authentication:
+
+```
+Request → Read session cookie → KV lookup → playerId
+                                         ↘ Guest auto-create if no session
+```
+
+Key files:
+- `src/lib/auth-kv.ts` -- PBKDF2 hashing, KV sessions, guest auto-login
+- `src/lib/get-user.ts` -- Helper for extracting authenticated user from request
+
+## Per-Seat Bot Controls
+
+Empty seats at a table display interactive controls:
+- **"Sit Here"** button for human players
+- **Bot profile picker** for adding AI bots to specific seats
+
+The `EmptySeat` component (`src/components/empty-seat.tsx`) renders the seat menu.
+The `POST /api/v1/table/[id]/add-bot` endpoint accepts an optional `seat` parameter.
+The `POST /api/v1/table/[id]/move-seat` endpoint allows moving a player to an empty seat.
 
 ## Bot Session System
 
 Each bot gets a **unique session** for conversation context isolation:
 
 ```
-Bot 1 ─────> Session A (systemPrompt + message history)
-Bot 2 ─────> Session B (systemPrompt + message history)
-Bot 3 ─────> Session C (systemPrompt + message history)
+Bot 1 ────> Session A (systemPrompt + message history)
+Bot 2 ────> Session B (systemPrompt + message history)
+Bot 3 ────> Session C (systemPrompt + message history)
       ↓           ↓           ↓
-   Same Model (Nemotron Nano via LM Studio)
+   Same Model (shared via LM Studio or cloud API)
 ```
 
 ### Single-Model Mode
@@ -81,56 +107,21 @@ By default, all bots use the **same loaded model** but with separate sessions:
 - History is trimmed to 20 messages (rolling window)
 - Session cleared on model change
 
-### Session Lifecycle
-1. **Created** when game starts (per bot)
-2. **Updated** with each decision (prompt + response)
-3. **Cleared** when game resets or model changes
-4. **Survives** HMR via `globalThis` pattern
-- HMR-friendly (survives hot reload)
+## KV Persistence
 
-### globalThis Singletons
+All state is stored in the `GAME_STATE` Cloudflare KV namespace:
 
-To survive Next.js HMR and module boundaries:
+| Key Pattern | Value | TTL |
+|-------------|-------|-----|
+| `game:{gameId}` | GameState JSON | 24 hours |
+| `table:{tableId}` | Table JSON | 24 hours |
+| `tables:index` | Table ID list | 24 hours |
+| `user:{userId}` | User JSON | Permanent |
+| `user-email:{email}` | User ID | Permanent |
+| `user-username:{username}` | User ID | Permanent |
+| `session:{sessionId}` | Session JSON | 7 days |
 
-```typescript
-const g = globalThis as Record<string, unknown>;
-if (!g.__pokerGameManager) g.__pokerGameManager = new GameManager();
-export const gameManager = g.__pokerGameManager as GameManager;
-```
-
-This pattern is used for:
-- `GameManager` — game state and tick loop
-- `HandHistory` — completed hand records
-- `DecisionLog` — bot decision records
-- `GameSettings` — runtime configuration
-- `DriverStore` — AI driver instances
-
-## Production Architecture (Planned)
-
-```
-┌──────────────────────────────────────────────────────┐
-│                    Cloudflare CDN                     │
-└───────────────────────┬──────────────────────────────┘
-                        │
-          ┌─────────────┴─────────────┐
-          │                           │
-┌─────────▼─────────┐     ┌───────────▼──────────┐
-│   poker-web        │     │   poker-game-server   │
-│   (Worker)         │     │   (Worker + DO)       │
-│                    │     │                       │
-│   Next.js SSR      │     │   WebSocket handler   │
-│   API Routes       │     │   TableRoom DO        │
-│   Auth             │     │   Bot Controller      │
-│                    │     │                       │
-└────────────────────┘     └───────────────────────┘
-          │                           │
-          └───────────┬───────────────┘
-                      │
-          ┌───────────▼───────────────┐
-          │     Cloudflare D1          │
-          │     (persistent storage)   │
-          └───────────────────────────┘
-```
+In-memory fallback is used when KV is unavailable (local development).
 
 ## Tech Stack
 
@@ -140,29 +131,28 @@ This pattern is used for:
 | Next.js | 15.x | App Router, SSR, API routes |
 | React | 19.x | UI rendering |
 | TypeScript | 5.x | Type safety |
-| Tailwind CSS | 4.x | Styling |
+| Tailwind CSS | 4.x | Styling (portfolio HSL tokens) |
+| Framer Motion | 12.x | Animations |
 
-### Backend (Current)
+### Backend
 | Technology | Purpose |
 |---|---|
-| Next.js API Routes | REST endpoints |
-| In-memory stores | Game state, sessions |
-| globalThis singletons | HMR survival |
-
-### Backend (Production)
-| Technology | Purpose |
-|---|---|
-| Cloudflare Workers | Serverless compute |
-| Durable Objects | Stateful WebSocket rooms |
-| Cloudflare D1 | SQLite database |
-| Cloudflare KV | Session cache |
+| Cloudflare Pages | Hosting + edge runtime |
+| Cloudflare KV | Game state, auth, table persistence |
+| Edge API Routes | All endpoints run on edge runtime |
+| Cookie sessions | Auth via `auth-kv.ts` |
 
 ### AI Infrastructure
-| Provider | Models |
+| Provider | Access |
 |---|---|
-| LM Studio (local) | Nemotron, Qwen, GLM, Mistral, DeepSeek, Gemma |
-| Ollama (local) | Llama 3.3 |
-| OpenRouter (cloud) | Claude, GPT-4o, Gemini |
+| LM Studio (local) | `http://localhost:1234/v1` |
+| Ollama (local) | `http://localhost:11434/v1` |
+| OpenRouter (cloud) | Any model via API key |
+
+### Design System
+- **Color tokens:** Portfolio HSL design tokens
+- **Fonts:** Inter (body), Space Grotesk (headings), JetBrains Mono (code)
+- **Theme:** Dark mode default
 
 ## Repository Structure
 
@@ -170,27 +160,22 @@ This pattern is used for:
 /Volumes/JS-DEV/poker/
 ├── src/
 │   ├── app/                    # Next.js App Router
-│   │   ├── api/v1/             # REST API endpoints
+│   │   ├── api/v1/             # REST API endpoints (edge runtime)
 │   │   ├── (game)/lobby/       # Lobby page
 │   │   ├── (auth)/             # Login/register
 │   │   └── table/[id]/         # Game table page
 │   ├── components/             # React components
-│   │   ├── poker-table.tsx     # Main table UI
+│   │   ├── poker-table-ws.tsx  # WebSocket table (primary)
+│   │   ├── empty-seat.tsx      # Per-seat controls
 │   │   ├── debug-panel.tsx     # Debug tools
-│   │   ├── action-panel.tsx    # Action buttons
 │   │   └── ...
 │   └── lib/
 │       ├── poker/              # Pure game logic
-│       │   ├── types.ts
-│       │   ├── deck.ts
-│       │   ├── hand-eval.ts
-│       │   ├── game.ts
-│       │   ├── bot.ts
-│       │   └── bot-drivers.ts
-│       ├── game-manager.ts     # Tick-based manager
-│       ├── game-config.ts      # Runtime settings
-│       ├── hand-history.ts     # Hand records
-│       └── auth.ts             # Session auth
+│       ├── auth-kv.ts          # KV-backed auth
+│       ├── game-manager-kv.ts  # KV-backed game manager
+│       ├── table-store-kv.ts   # KV-backed table store
+│       └── ...
+├── worker/                     # Durable Object worker (future)
 ├── docs/                       # Documentation
 ├── CLAUDE.md                   # AI coding rules
 ├── README.md                   # Quick start
@@ -201,8 +186,11 @@ This pattern is used for:
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Polling vs WebSocket | Polling (prototype) | Simpler for dev, WS planned for prod |
-| State management | globalThis singletons | Survives HMR, no external deps |
+| Persistence | Cloudflare KV | Survives edge isolate restarts |
+| Real-time | WebSocket + polling fallback | Best of both worlds |
+| Auth | KV sessions + PBKDF2 | Edge-safe, no external deps |
+| Bot placement | Per-seat controls | More control than auto-fill |
+| State management | KV with in-memory fallback | Works locally and in production |
 | Bot architecture | Hybrid AI + rule-based | Never stalls game on API failure |
 | Card hiding | Server-authoritative | Client never sees opponent cards |
-| Game loop | Tick-based on poll | No background timers needed |
+| maxPlayers | In GameState/GameConfig | Configurable table sizes |

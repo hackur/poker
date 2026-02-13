@@ -84,11 +84,12 @@ export function DebugPanel({ gameState, onUpdateBot, onResetGame }: DebugPanelPr
   // Fetch decisions
   useEffect(() => {
     if (!open || tab !== 'decisions') return;
-    const poll = () => fetch('/api/v1/decisions').then((r) => r.json()).then((d) => setDecisions(d.decisions ?? [])).catch(() => {});
+    const gameId = gameState?.id || 'demo';
+    const poll = () => fetch(`/api/v1/decisions?gameId=${gameId}`).then((r) => r.json()).then((d) => setDecisions(d.decisions ?? [])).catch(() => {});
     poll();
     const iv = setInterval(poll, 2000);
     return () => clearInterval(iv);
-  }, [open, tab]);
+  }, [open, tab, gameState?.id]);
 
   // Fetch hand history
   useEffect(() => {

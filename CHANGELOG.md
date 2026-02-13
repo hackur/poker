@@ -2,6 +2,45 @@
 
 All notable changes to the AI Poker platform.
 
+## [0.9.7] - 2026-02-12
+
+### Added
+- **KV-Backed Auth** -- `src/lib/auth-kv.ts` with PBKDF2 hashing (Web Crypto API)
+- **Guest Auto-Login** -- unauthenticated users get a guest account automatically
+- **Per-Seat Bot Controls** -- `EmptySeat` component with "Sit Here" + bot profile picker
+- **Move Seat Endpoint** -- `POST /api/v1/table/[id]/move-seat` to change seats
+- **Targeted Bot Placement** -- `POST /api/v1/table/[id]/add-bot` accepts `seat` parameter
+- **maxPlayers** field added to GameState, GameConfig, PlayerGameView
+- **Design System** -- Portfolio HSL tokens, Inter/Space Grotesk/JetBrains Mono fonts
+
+### Changed
+- All table endpoints now use cookie session authentication pattern
+- Auth sessions stored in Cloudflare KV with 7-day TTL
+- Admin account auto-seeds on first KV access
+
+### Removed
+- **Demo content** -- Quick Play, AI Battle, Practice modes deleted
+- `createDemo()` and `createHeadsUp()` functions removed
+- Hardcoded `human-1` / `HUMAN_PLAYER_ID` references removed
+
+---
+
+## [0.9.6] - 2026-02-12
+
+### Added
+- **Comprehensive Test Suite Expansion** — 280 tests total (was 146)
+  - `deck.test.ts` — 18 tests for deck creation, shuffling, dealing
+  - `player-stats.test.ts` — 21 tests for player tracking, positions, sessions
+  - `auth.test.ts` — 37 tests for user creation, auth, sessions, roles
+  - `table-store.test.ts` — 37 tests for lobby table management
+  - `leaderboard.test.ts` — 21 tests for rankings, weekly changes, pagination
+
+### Documentation
+- Test coverage documented in CHANGELOG
+- All new test files follow established patterns
+
+---
+
 ## [0.9.5] - 2026-02-12
 
 ### Added
@@ -19,7 +58,7 @@ All notable changes to the AI Poker platform.
 
 ### Changed
 - API routes now use KV-backed game manager
-- Auth middleware allows public access to demo table API
+- Auth middleware updated for KV session pattern
 - TypeScript config excludes `worker/` directory
 
 ### Fixed

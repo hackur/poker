@@ -22,15 +22,17 @@ import {
   type GameConfig,
 } from './poker';
 import { getGameStateKV, type KVNamespace } from './cf-context';
+import type { BotDecision } from './poker/bot-drivers';
 
 // ============================================================
 // Types
 // ============================================================
 
-interface GameInstance {
+export interface GameInstance {
   state: GameState;
   lastTickTime: number;
   showdownUntil: number;
+  decisions: BotDecision[];
 }
 
 // TTL for game state in KV (24 hours)
@@ -71,7 +73,7 @@ export class KVGameManager {
   /**
    * Load game instance from KV or memory
    */
-  private async loadGame(gameId: string): Promise<GameInstance | null> {
+  async loadGame(gameId: string): Promise<GameInstance | null> {
     this.initKV();
 
     // Try memory first (for same-request caching)
@@ -120,63 +122,16 @@ export class KVGameManager {
   }
 
   /**
-   * Create a new demo game
+   * Create a new game with a specific game ID
+   * Only adds the human player - bots must be added manually via add-bot endpoint
    */
-  async createDemo(humanPlayerId: string): Promise<GameState> {
-    const gameId = 'demo';
-
-    // Check if exists
+  async createGame(gameId: string, humanPlayerId: string): Promise<GameState> {
     const existing = await this.loadGame(gameId);
     if (existing) return existing.state;
 
-    // Create players
+    // Only add the human player initially
     const players: GameConfig['players'] = [
       { id: humanPlayerId, name: 'You', stack: 1000, isBot: false },
-    ];
-
-    // Add 5 bots with diverse names
-    const botNames = ['Alex 🤖', 'Morgan 🤖', 'Jordan 🤖', 'Casey 🤖', 'Riley 🤖'];
-    for (let i = 0; i < 5; i++) {
-      players.push({
-        id: `bot-${i}`,
-        name: botNames[i],
-        stack: 1000,
-        isBot: true,
-        botModel: 'Rule-Based',
-      });
-    }
-
-    const state = createGame({
-      id: gameId,
-      smallBlind: 5,
-      bigBlind: 10,
-      players,
-    });
-
-    const instance: GameInstance = {
-      state,
-      lastTickTime: Date.now(),
-      showdownUntil: 0,
-    };
-
-    await this.saveGame(gameId, instance);
-    console.log(`[KVGameManager] Created demo game`);
-
-    return state;
-  }
-
-  /**
-   * Create a heads-up game against a specific bot
-   */
-  async createHeadsUp(humanPlayerId: string, botId?: string): Promise<GameState> {
-    const gameId = `heads-up-${botId ?? 'default'}`;
-
-    const existing = await this.loadGame(gameId);
-    if (existing) return existing.state;
-
-    const players: GameConfig['players'] = [
-      { id: humanPlayerId, name: 'You', stack: 1000, isBot: false },
-      { id: 'bot-0', name: 'Opponent 🤖', stack: 1000, isBot: true, botModel: 'Rule-Based' },
     ];
 
     const state = createGame({
@@ -190,24 +145,23 @@ export class KVGameManager {
       state,
       lastTickTime: Date.now(),
       showdownUntil: 0,
+      decisions: [],
     };
 
     await this.saveGame(gameId, instance);
+    console.log(`[KVGameManager] Created game ${gameId} with only human player`);
     return state;
   }
 
   /**
    * Get or create a game
+   * If the game doesn't exist, create it with ONLY the requesting human player (no bots)
    */
   async getOrCreate(gameId: string, humanPlayerId: string): Promise<GameState> {
     const existing = await this.loadGame(gameId);
     if (existing) return existing.state;
 
-    if (gameId.startsWith('heads-up-')) {
-      return this.createHeadsUp(humanPlayerId, gameId.replace('heads-up-', ''));
-    }
-
-    return this.createDemo(humanPlayerId);
+    return this.createGame(gameId, humanPlayerId);
   }
 
   /**
@@ -263,6 +217,98 @@ export class KVGameManager {
 
     // Recreate
     await this.getOrCreate(gameId, humanPlayerId);
+  }
+
+  /**
+   * Add a bot to a game at a specific seat
+   */
+  async addBot(gameId: string, botProfile: string, seat?: number): Promise<boolean> {
+    const instance = await this.loadGame(gameId);
+    if (!instance) return false;
+
+    const state = instance.state;
+    const maxPlayers = state.maxPlayers ?? 6;
+
+    // Don't add bots during active play
+    if (state.phase !== 'waiting' && state.phase !== 'showdown') {
+      console.log(`[KVGameManager] Cannot add bot during ${state.phase}`);
+      return false;
+    }
+
+    // Max players check
+    if (state.players.length >= maxPlayers) {
+      console.log(`[KVGameManager] Table full`);
+      return false;
+    }
+
+    // Determine seat number
+    const occupiedSeats = new Set(state.players.map(p => p.seat));
+    let targetSeat: number;
+    if (seat !== undefined) {
+      if (seat < 0 || seat >= maxPlayers || occupiedSeats.has(seat)) {
+        console.log(`[KVGameManager] Seat ${seat} is invalid or occupied`);
+        return false;
+      }
+      targetSeat = seat;
+    } else {
+      // Find first available seat
+      targetSeat = -1;
+      for (let i = 0; i < maxPlayers; i++) {
+        if (!occupiedSeats.has(i)) { targetSeat = i; break; }
+      }
+      if (targetSeat === -1) return false;
+    }
+
+    // Generate bot name based on profile
+    const botId = `bot-${targetSeat}`;
+    const botName = `${botProfile} 🤖`;
+
+    state.players.push({
+      id: botId,
+      name: botName,
+      seat: targetSeat,
+      stack: 1000,
+      holeCards: [],
+      currentBet: 0,
+      totalBet: 0,
+      folded: false,
+      allIn: false,
+      isBot: true,
+      botModel: botProfile,
+      hasActedThisRound: false,
+    });
+
+    await this.saveGame(gameId, instance);
+    console.log(`[KVGameManager] Added ${botProfile} bot to ${gameId}`);
+    return true;
+  }
+
+  /**
+   * Move a player to a different seat
+   */
+  async moveSeat(gameId: string, playerId: string, toSeat: number): Promise<boolean> {
+    const instance = await this.loadGame(gameId);
+    if (!instance) return false;
+
+    const state = instance.state;
+    const maxPlayers = state.maxPlayers ?? 6;
+
+    // Only allow during waiting/showdown
+    if (state.phase !== 'waiting' && state.phase !== 'showdown') {
+      return false;
+    }
+
+    if (toSeat < 0 || toSeat >= maxPlayers) return false;
+
+    const player = state.players.find(p => p.id === playerId);
+    if (!player) return false;
+
+    const occupiedSeats = new Set(state.players.map(p => p.seat));
+    if (occupiedSeats.has(toSeat)) return false;
+
+    player.seat = toSeat;
+    await this.saveGame(gameId, instance);
+    return true;
   }
 
   /**

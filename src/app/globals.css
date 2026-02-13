@@ -1,88 +1,135 @@
 @import 'tailwindcss';
 @import '../styles/responsive.css';
 
-/* Portfolio-matching color scheme */
+/* ============================================================
+   Design System Tokens — jeremysarda.com
+   ============================================================ */
+
 :root {
-  /* Primary accent - matches jeremysarda.com teal */
-  --color-primary: #14b8a6;
-  --color-primary-hover: #0d9488;
-  --color-primary-light: #2dd4bf;
-  
-  /* Backgrounds - dark charcoal */
-  --color-bg-dark: #1a1a1a;
-  --color-bg-card: #262626;
-  --color-bg-input: #333333;
-  
-  /* Text */
-  --color-text: #f5f5f5;
-  --color-text-muted: #a3a3a3;
-  
-  /* Poker table green (keeping for table felt) */
-  --color-felt: #0f5132;
-  --color-felt-light: #157347;
+  /* Light Mode */
+  --background: 35 30% 97%;
+  --foreground: 24 35% 12%;
+  --card: 35 25% 95%;
+  --card-foreground: 24 35% 12%;
+  --popover: 35 28% 96%;
+  --popover-foreground: 24 35% 12%;
+  --primary: 24 35% 12%;
+  --primary-foreground: 35 30% 97%;
+  --secondary: 35 20% 92%;
+  --secondary-foreground: 24 35% 12%;
+  --muted: 35 18% 90%;
+  --muted-foreground: 24 15% 45%;
+  --accent: 173 58% 39%;
+  --accent-rgb: 41, 158, 137;
+  --accent-foreground: 35 30% 97%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 35 30% 97%;
+  --border: 35 15% 85%;
+  --input: 35 15% 85%;
+  --ring: 173 58% 39%;
+  --radius: 0.625rem;
 }
 
-/* Override default green with teal */
-.bg-green-600 {
-  background-color: var(--color-primary) !important;
-}
-.bg-green-500 {
-  background-color: var(--color-primary-light) !important;
-}
-.hover\:bg-green-500:hover {
-  background-color: var(--color-primary-hover) !important;
-}
-.text-green-400 {
-  color: var(--color-primary-light) !important;
-}
-.hover\:text-green-300:hover {
-  color: var(--color-primary) !important;
-}
-.focus\:border-green-500:focus {
-  border-color: var(--color-primary) !important;
-}
-.border-green-500 {
-  border-color: var(--color-primary) !important;
+.dark {
+  /* Dark Mode */
+  --background: 24 30% 6%;
+  --foreground: 35 25% 95%;
+  --card: 24 25% 8%;
+  --card-foreground: 35 25% 95%;
+  --popover: 24 25% 8%;
+  --popover-foreground: 35 25% 95%;
+  --primary: 35 25% 95%;
+  --primary-foreground: 24 30% 6%;
+  --secondary: 24 20% 12%;
+  --secondary-foreground: 35 25% 95%;
+  --muted: 24 18% 14%;
+  --muted-foreground: 35 12% 60%;
+  --accent: 173 58% 39%;
+  --accent-rgb: 41, 158, 137;
+  --accent-foreground: 35 25% 95%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 35 25% 95%;
+  --border: 24 15% 18%;
+  --input: 24 15% 18%;
+  --ring: 173 58% 39%;
 }
 
-/* Dark background for consistency */
+/* ============================================================
+   Tailwind v4 Theme Extensions
+   ============================================================ */
+
+@theme {
+  --font-sans: var(--font-inter, var(--font-sans)), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-space-grotesk, var(--font-display)), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono, var(--font-mono)), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --spacing-18: 4.5rem;
+  --spacing-22: 5.5rem;
+  --breakpoint-3xl: 1920px;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Poker-Specific Variables (Table Felt)
+   ============================================================ */
+
+:root {
+  --felt-green: #0f5132;
+  --felt-green-light: #157347;
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+
 body {
-  background-color: var(--color-bg-dark);
-  color: var(--color-text);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Card backgrounds */
-.bg-gray-800 {
-  background-color: var(--color-bg-card) !important;
-}
-.bg-gray-700 {
-  background-color: var(--color-bg-input) !important;
-}
-.bg-gray-900, .bg-gray-950 {
-  background-color: var(--color-bg-dark) !important;
+::selection {
+  background-color: hsl(var(--accent) / 0.3);
+  color: hsl(var(--foreground));
 }
 
-/* Custom scrollbar */
+/* ============================================================
+   Typography
+   ============================================================ */
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+}
+
+/* ============================================================
+   Custom Scrollbar
+   ============================================================ */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-dark);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-bg-input);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
+  background: hsl(var(--background));
 }
 
-/* Smooth transitions */
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent));
+}
+
+/* ============================================================
+   Smooth Transitions
+   ============================================================ */
+
 * {
   transition-property: background-color, border-color, color;
   transition-duration: 150ms;
   transition-timing-function: ease-in-out;
 }
-
-/* Note: Animation classes are handled by Tailwind/Framer Motion */

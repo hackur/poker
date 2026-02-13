@@ -74,8 +74,8 @@ A production-quality Texas Hold'em No-Limit poker platform where:
 
 ### ✅ Phase 5: Prototype Infrastructure — COMPLETE
 - [x] REST API: 12+ endpoints under `/api/v1/`
-- [x] Table lobby page with Quick Play cards
-- [x] Game type routing (demo, heads-up-{driverId})
+- [x] Table lobby page with table listing and creation
+- [x] Game type routing (table ID based)
 - [x] In-memory auth system (login, register, session, logout)
 - [x] ~4,900 lines of TypeScript across 37 files
 

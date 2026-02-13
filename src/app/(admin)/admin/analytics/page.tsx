@@ -243,11 +243,7 @@ export default function AnalyticsAdminPage() {
         <div className="mt-8 bg-[#262626] rounded-xl p-6 border border-gray-700">
           <h3 className="text-white font-medium mb-2">📊 About Analytics</h3>
           <p className="text-gray-400 text-sm">
-            This poker demo is part of Jeremy Sarda&apos;s portfolio at{' '}
-            <a href="https://jeremysarda.com" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">
-              jeremysarda.com
-            </a>
-            . Analytics help understand how visitors use the application. All data is used solely
+            Analytics help understand how visitors use the application. All data is used solely
             for improving the user experience. No personal gameplay data is shared with third parties.
           </p>
         </div>

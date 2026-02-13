@@ -2,8 +2,7 @@ export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { gameManagerV2 } from '@/lib/game-manager-v2';
-
-const HUMAN_PLAYER_ID = 'human-1'; // TODO: Wire to auth
+import { getOrCreateGuestUser } from '@/lib/auth-kv';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -12,8 +11,9 @@ interface RouteParams {
 /** GET /api/v1/table-v2/:slug — Get game state using BotPlayer system */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { slug } = await params;
+  const user = await getOrCreateGuestUser();
   const { searchParams } = new URL(request.url);
-  const playerId = searchParams.get('playerId') ?? HUMAN_PLAYER_ID;
+  const playerId = searchParams.get('playerId') ?? user.id;
 
   const view = gameManagerV2.getView(slug, playerId);
   
@@ -38,8 +38,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 /** POST /api/v1/table-v2/:slug — Submit an action */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { slug } = await params;
+  const user = await getOrCreateGuestUser();
   const body = await request.json();
-  const { playerId = HUMAN_PLAYER_ID, action } = body;
+  const { playerId = user.id, action } = body;
 
   if (!action || !action.type) {
     return NextResponse.json({ error: 'Missing action' }, { status: 400 });
@@ -58,8 +59,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 /** DELETE /api/v1/table-v2/:slug — Reset game */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { slug } = await params;
+  const user = await getOrCreateGuestUser();
   const { searchParams } = new URL(request.url);
-  const playerId = searchParams.get('playerId') ?? HUMAN_PLAYER_ID;
+  const playerId = searchParams.get('playerId') ?? user.id;
 
   gameManagerV2.resetGame(slug, playerId);
 

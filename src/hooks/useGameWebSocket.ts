@@ -306,6 +306,13 @@ export function useGameWebSocket(opts: UseGameWebSocketOptions): UseGameWebSocke
   // Effects
   // ============================================================
 
+  // Initial poll to load game state immediately (don't wait for WS)
+  useEffect(() => {
+    if (enabled && gameId && playerId) {
+      fallbackPoll();
+    }
+  }, [enabled, gameId, playerId, fallbackPoll]);
+
   useEffect(() => {
     if (enabled) {
       connect();
@@ -318,8 +325,13 @@ export function useGameWebSocket(opts: UseGameWebSocketOptions): UseGameWebSocke
     };
   }, [enabled, connect, disconnect]);
 
-  // Reconnect when gameId or playerId changes
+  // Reconnect when gameId or playerId changes (skip initial mount — connect effect handles that)
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     if (enabled) {
       reconnect();
     }

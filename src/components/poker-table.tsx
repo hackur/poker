@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PlayerGameView, PlayerAction } from '@/lib/poker/types';
 import { PlayerSeat } from './player-seat';
+import { EmptySeat } from './empty-seat';
 import { CommunityCards, HoleCards } from './card';
 import { PotDisplay } from './chip-stack';
 import { ActionPanel } from './action-panel';
@@ -121,6 +122,21 @@ export function PokerTable({ tableId }: PokerTableProps) {
       body: JSON.stringify({ command: 'reset' }),
     });
     if (res.ok) setGameState(await res.json());
+  }, [tableId]);
+
+  const handleAddBot = useCallback(async (botProfile: string) => {
+    try {
+      const res = await fetch(`/api/v1/table/${tableId}/add-bot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botProfile }),
+      });
+      if (res.ok) {
+        setGameState(await res.json());
+      }
+    } catch (err) {
+      console.error('Failed to add bot:', err);
+    }
   }, [tableId]);
 
   // Keyboard shortcuts
@@ -244,19 +260,32 @@ export function PokerTable({ tableId }: PokerTableProps) {
             </AnimatePresence>
           </div>
 
-          {/* Player seats */}
-          {gameState.players.map((player) => (
-            <div key={player.seat} className="absolute" style={getSeatPosition(gameState.players.length, player.seat)}>
-              <PlayerSeat
-                player={player}
-                isDealer={player.seat === gameState.dealerSeat}
-                isHero={player.seat === gameState.mySeat}
-                heroCards={player.seat === gameState.mySeat ? gameState.myCards : undefined}
-                isWinner={winnerSeats.has(player.seat)}
-                handNumber={gameState.handNumber}
-              />
-            </div>
-          ))}
+          {/* Player seats (filled and empty) */}
+          {Array.from({ length: 6 }).map((_, seatIndex) => {
+            const player = gameState.players.find(p => p.seat === seatIndex);
+            const seatStyle = getSeatPosition(6, seatIndex);
+            
+            return (
+              <div key={seatIndex} className="absolute" style={seatStyle}>
+                {player ? (
+                  <PlayerSeat
+                    player={player}
+                    isDealer={player.seat === gameState.dealerSeat}
+                    isHero={player.seat === gameState.mySeat}
+                    heroCards={player.seat === gameState.mySeat ? gameState.myCards : undefined}
+                    isWinner={winnerSeats.has(player.seat)}
+                    handNumber={gameState.handNumber}
+                  />
+                ) : (
+                  <EmptySeat
+                    seatNumber={seatIndex}
+                    onAddBot={handleAddBot}
+                    disabled={gameState.phase !== 'waiting' && gameState.phase !== 'showdown'}
+                  />
+                )}
+              </div>
+            );
+          })}
         </motion.div>
       </div>
 

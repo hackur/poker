@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { leaveTable, tableToView } from '@/lib/table-store';
+import { leaveTable, tableToView } from '@/lib/table-store-kv';
 
 export const runtime = 'edge';
 
@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: 'playerId is required' }, { status: 400 });
     }
 
-    const result = leaveTable(id, playerId);
+    const result = await leaveTable(id, playerId);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

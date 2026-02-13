@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listTables, createTable, type CreateTableInput } from '@/lib/table-store';
+import { listTables, createTable, type CreateTableInput } from '@/lib/table-store-kv';
+import { getOrCreateGuestUser } from '@/lib/auth-kv';
 
 export const runtime = 'edge';
 
 /** GET /api/v1/tables — List all tables */
 export async function GET() {
-  return NextResponse.json({ tables: listTables() });
+  const tables = await listTables();
+  return NextResponse.json({ tables });
 }
 
 /** POST /api/v1/tables — Create a new table */
 export async function POST(req: NextRequest) {
   try {
+    const user = await getOrCreateGuestUser();
     const body = await req.json();
     const { name, smallBlind, bigBlind, minBuyIn, maxBuyIn, maxPlayers } = body;
 
@@ -34,10 +37,10 @@ export async function POST(req: NextRequest) {
       minBuyIn: Number(minBuyIn),
       maxBuyIn: Number(maxBuyIn),
       maxPlayers: Number(maxPlayers) || 6,
-      createdBy: 'human-1', // TODO: wire to auth
+      createdBy: user.id,
     };
 
-    const table = createTable(input);
+    const table = await createTable(input);
     return NextResponse.json({ table }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

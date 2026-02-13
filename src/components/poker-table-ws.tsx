@@ -20,6 +20,13 @@ import { SoundToggle } from './sound-toggle';
 import { useGameSounds, playActionSound } from '@/lib/audio/use-game-sounds';
 import { ChatPanel } from './chat-panel';
 import { useGameWebSocket } from '@/hooks/useGameWebSocket';
+import { BOT_PROFILES } from '@/lib/poker/bot';
+
+interface UserInfo {
+  id: string;
+  displayName: string;
+  balance: number;
+}
 
 // ============================================================
 // Seat Layout Constants
@@ -78,6 +85,89 @@ function ConnectionStatus({ state, latency, onReconnect }: ConnectionStatusProps
         </button>
       )}
     </div>
+  );
+}
+
+// ============================================================
+// Empty Seat Menu Component
+// ============================================================
+
+interface EmptySeatMenuProps {
+  seat: number;
+  tableId: string;
+  playerId: string;
+  onAction: () => void;
+}
+
+function EmptySeatMenu({ seat, tableId, playerId, onAction }: EmptySeatMenuProps) {
+  const [open, setOpen] = useState(false);
+
+  const handleSitHere = async () => {
+    setOpen(false);
+    await fetch(`/api/v1/table/${tableId}/move-seat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId, toSeat: seat }),
+    });
+    onAction();
+  };
+
+  const handleAddBot = async (profileName: string) => {
+    setOpen(false);
+    await fetch(`/api/v1/table/${tableId}/add-bot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ botProfile: profileName, seat, playerId }),
+    });
+    onAction();
+  };
+
+  if (!open) {
+    return (
+      <motion.button
+        className="flex items-center justify-center w-16 h-16 rounded-full bg-gray-800/40 border border-gray-600/30 
+                   hover:bg-gray-700/60 hover:border-emerald-500/40 transition-all text-gray-500 hover:text-emerald-400 text-2xl"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 0.6, scale: 1 }}
+        whileHover={{ opacity: 1, scale: 1.05 }}
+        onClick={() => setOpen(true)}
+        title={`Seat ${seat + 1}`}
+      >
+        +
+      </motion.button>
+    );
+  }
+
+  return (
+    <motion.div
+      className="flex flex-col gap-0.5 p-2 rounded-xl bg-gray-900/95 border border-emerald-500/50 min-w-[140px] z-30"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+    >
+      <button
+        className="px-2 py-1.5 text-xs text-left rounded hover:bg-emerald-600/20 text-emerald-300 font-medium transition-colors"
+        onClick={handleSitHere}
+      >
+        🪑 Sit Here
+      </button>
+      <div className="border-t border-gray-700 my-1" />
+      <div className="text-[10px] text-gray-500 px-2 py-0.5 font-semibold uppercase">Add Bot</div>
+      {BOT_PROFILES.map((profile) => (
+        <button
+          key={profile.name}
+          className="px-2 py-1.5 text-xs text-left rounded hover:bg-emerald-600/20 text-white transition-colors"
+          onClick={() => handleAddBot(profile.name)}
+        >
+          <div className="font-medium">🤖 {profile.name}</div>
+        </button>
+      ))}
+      <button
+        className="px-2 py-1 text-xs text-gray-400 hover:text-white border-t border-gray-700 mt-1"
+        onClick={() => setOpen(false)}
+      >
+        Cancel
+      </button>
+    </motion.div>
   );
 }
 
@@ -277,19 +367,34 @@ export function PokerTableWS({ tableId, playerId = 'human-1' }: PokerTableWSProp
             </AnimatePresence>
           </div>
 
-          {/* Player seats */}
-          {gameState.players.map((player) => (
-            <div key={player.seat} className="absolute" style={getSeatPosition(gameState.players.length, player.seat)}>
-              <PlayerSeat
-                player={player}
-                isDealer={player.seat === gameState.dealerSeat}
-                isHero={player.seat === gameState.mySeat}
-                heroCards={player.seat === gameState.mySeat ? gameState.myCards : undefined}
-                isWinner={winnerSeats.has(player.seat)}
-                handNumber={gameState.handNumber}
-              />
-            </div>
-          ))}
+          {/* Player seats (occupied + empty) */}
+          {Array.from({ length: gameState.maxPlayers }, (_, seat) => {
+            const player = gameState.players.find(p => p.seat === seat);
+            if (player) {
+              return (
+                <div key={seat} className="absolute" style={getSeatPosition(gameState.maxPlayers, seat)}>
+                  <PlayerSeat
+                    player={player}
+                    isDealer={player.seat === gameState.dealerSeat}
+                    isHero={player.seat === gameState.mySeat}
+                    heroCards={player.seat === gameState.mySeat ? gameState.myCards : undefined}
+                    isWinner={winnerSeats.has(player.seat)}
+                    handNumber={gameState.handNumber}
+                  />
+                </div>
+              );
+            }
+            return (
+              <div key={seat} className="absolute" style={getSeatPosition(gameState.maxPlayers, seat)}>
+                <EmptySeatMenu
+                  seat={seat}
+                  tableId={tableId}
+                  playerId={playerId}
+                  onAction={() => {/* state updates via WS */}}
+                />
+              </div>
+            );
+          })}
         </motion.div>
       </div>
 

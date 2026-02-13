@@ -97,7 +97,7 @@ npm run dev
 
 # Production with KV
 npm run pages:deploy
-# Visit poker.jeremysarda.com/table/demo
+# Visit poker.jeremysarda.com/lobby
 ```
 
 ---

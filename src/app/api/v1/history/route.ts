@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
   if (gameId) history = history.filter((h) => h.gameId === gameId);
 
   // Attach decisions to each hand
-  const decisions = getDecisionLog();
+  // TODO: Load decisions from each game's KV storage
+  const decisions = getDecisionLog([]);
   const enriched = history.map((hand) => {
     const handDecisions = decisions.filter(
       (d) => d.gameId === hand.gameId && d.handNumber === hand.handNumber,

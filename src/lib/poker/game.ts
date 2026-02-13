@@ -14,6 +14,7 @@ export interface GameConfig {
   id: string;
   smallBlind: number;
   bigBlind: number;
+  maxPlayers?: number;
   players: { 
     id: string; 
     name: string; 
@@ -56,6 +57,7 @@ export function createGame(config: GameConfig): GameState {
     deck: [],
     deckIndex: 0,
     isActive: true,
+    maxPlayers: config.maxPlayers ?? 6,
     smallBlind: config.smallBlind,
     bigBlind: config.bigBlind,
   };
@@ -490,6 +492,7 @@ export function getPlayerView(state: GameState, playerId: string): PlayerGameVie
     mySeat: me?.seat ?? -1,
     myStack: me?.stack ?? 0,
     validActions: me ? getValidActions(state, playerId) : [],
+    maxPlayers: state.maxPlayers,
     handNumber: state.handNumber,
     smallBlind: state.smallBlind,
     bigBlind: state.bigBlind,

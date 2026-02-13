@@ -40,26 +40,21 @@ export const BOT_PROFILES: BotProfile[] = [
   { name: 'Haiku', model: 'Claude Haiku', aggression: 0.5, tightness: 0.5, bluffFreq: 0.1 },
 ];
 
-/** Decision log — stored on globalThis to survive module boundaries in dev */
-const LOG_KEY = '__pokerDecisionLog__';
-function decisionStore(): BotDecision[] {
-  const g = globalThis as Record<string, unknown>;
-  if (!Array.isArray(g[LOG_KEY])) g[LOG_KEY] = [];
-  return g[LOG_KEY] as BotDecision[];
+/** 
+ * Decision log — now stored in the GameInstance (passed as parameter)
+ * to work with Cloudflare edge runtime (no globalThis persistence)
+ */
+export function getDecisionLog(decisions: BotDecision[]): BotDecision[] {
+  return decisions;
 }
 
-export function getDecisionLog(): BotDecision[] {
-  return decisionStore();
+export function clearDecisionLog(decisions: BotDecision[]): void {
+  decisions.length = 0;
 }
 
-export function clearDecisionLog(): void {
-  decisionStore().length = 0;
-}
-
-function logDecision(decision: BotDecision): void {
-  const log = decisionStore();
-  log.unshift(decision); // Newest first
-  if (log.length > 100) log.pop();
+function logDecision(decisions: BotDecision[], decision: BotDecision): void {
+  decisions.unshift(decision); // Newest first
+  if (decisions.length > 100) decisions.pop();
 }
 
 // ============================================================
@@ -72,6 +67,7 @@ export async function computeBotActionAsync(
   playerId: string,
   profile: BotProfile,
   validActions: ValidAction[],
+  decisions: BotDecision[] = [],
 ): Promise<PlayerAction> {
   const player = state.players.find((p) => p.id === playerId);
   if (!player || validActions.length === 0) return { type: 'fold' };
@@ -102,7 +98,7 @@ export async function computeBotActionAsync(
           .map(s => `[${s.question}] ${s.response.slice(0, 150)}...`)
           .join('\n\n');
 
-        logDecision({
+        logDecision(decisions, {
           decisionId: uuid(),
           botId: playerId,
           botName: profile.name,
@@ -128,7 +124,7 @@ export async function computeBotActionAsync(
         // Apply occasional human-like mistakes
         const mistake = maybeApplyMistake(action, validActions, profile, state, playerId);
         if (mistake.wasMistake) {
-          logDecision({
+          logDecision(decisions, {
             decisionId: uuid(),
             botId: playerId,
             botName: profile.name,
@@ -164,7 +160,7 @@ export async function computeBotActionAsync(
 
       const action = validateAction(result.action, validActions);
 
-      logDecision({
+      logDecision(decisions, {
         decisionId: uuid(),
         botId: playerId,
         botName: profile.name,
@@ -190,7 +186,7 @@ export async function computeBotActionAsync(
       // Apply occasional human-like mistakes
       const mistake2 = maybeApplyMistake(action, validActions, profile, state, playerId);
       if (mistake2.wasMistake) {
-        logDecision({
+        logDecision(decisions, {
           decisionId: uuid(),
           botId: playerId,
           botName: profile.name,
@@ -222,7 +218,7 @@ export async function computeBotActionAsync(
   // Fall back to rule-based
   const action = computeBotActionSync(state, playerId, profile, validActions);
 
-  logDecision({
+  logDecision(decisions, {
     decisionId: uuid(),
     botId: playerId,
     botName: profile.name,
@@ -253,12 +249,13 @@ export function computeBotAction(
   playerId: string,
   profile: BotProfile,
   validActions: ValidAction[],
+  decisions: BotDecision[] = [],
 ): PlayerAction {
   const player = state.players.find((p) => p.id === playerId);
   const action = computeBotActionSync(state, playerId, profile, validActions);
 
   if (player) {
-    logDecision({
+    logDecision(decisions, {
       decisionId: uuid(),
       botId: playerId,
       botName: profile.name,
